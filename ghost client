@@ -1,9 +1,16 @@
--- // GHOST CLIENT - PERFECT KICK FOR LUCKY BLOCKS \\ --
+-- // GHOST CLIENT - PERFECT KICK \\ --
+task.wait(1) -- Ждём загрузки других скриптов
+
 local player = game.Players.LocalPlayer
+if not player then return end
+
+-- Защита от ошибок
+local success, err = pcall(function()
+
 local gui = Instance.new("ScreenGui")
-gui.Name = "GhostClient"
+gui.Name = "GhostClient_Main"
 gui.ResetOnSpawn = false
-gui.Parent = player:WaitForChild("PlayerGui")
+gui.Parent = player:WaitForChild("PlayerGui", 5)
 
 -- // НОТИФИКАЦИИ // --
 local function Notify(msg, duration)
@@ -95,8 +102,8 @@ iconText.Parent = icon
 
 -- // ОСНОВНОЕ ОКНО GUI // --
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 350, 0, 280)
-mainFrame.Position = UDim2.new(0.5, -175, 0.5, -140)
+mainFrame.Size = UDim2.new(0, 350, 0, 250)
+mainFrame.Position = UDim2.new(0.5, -175, 0.5, -125)
 mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
 mainFrame.BorderSizePixel = 0
 mainFrame.Visible = false
@@ -138,48 +145,18 @@ local closeCorner = Instance.new("UICorner")
 closeCorner.CornerRadius = UDim.new(0, 8)
 closeCorner.Parent = closeBtn
 
--- Настройки тайминга
-local timingSettings = {
-    delayBeforeKick = 0.5,  -- ждём перед нажатием KICK
-    chargeTime = 1.2,       -- время зарядки (тайминг)
-    kickPower = 1.0         -- сила удара
-}
+-- Настройка тайминга
+local chargeTime = 1.2
 
--- Ползунок для настройки тайминга
 local timingLabel = Instance.new("TextLabel")
 timingLabel.Size = UDim2.new(0.8, 0, 0, 20)
 timingLabel.Position = UDim2.new(0.1, 0, 0.15, 0)
 timingLabel.BackgroundTransparency = 1
-timingLabel.Text = "Тайминг зарядки: " .. timingSettings.chargeTime .. " сек"
+timingLabel.Text = "Тайминг: " .. chargeTime .. " сек"
 timingLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
 timingLabel.Font = Enum.Font.Gotham
 timingLabel.TextSize = 12
 timingLabel.Parent = mainFrame
-
-local timingSlider = Instance.new("Frame")
-timingSlider.Size = UDim2.new(0.8, 0, 0, 4)
-timingSlider.Position = UDim2.new(0.1, 0, 0.23, 0)
-timingSlider.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
-timingSlider.BorderSizePixel = 0
-timingSlider.Parent = mainFrame
-
-local sliderFill = Instance.new("Frame")
-sliderFill.Size = UDim2.new(timingSettings.chargeTime / 3, 0, 1, 0)
-sliderFill.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
-sliderFill.BorderSizePixel = 0
-sliderFill.Parent = timingSlider
-
-local sliderButton = Instance.new("TextButton")
-sliderButton.Size = UDim2.new(0, 12, 0, 12)
-sliderButton.Position = UDim2.new(timingSettings.chargeTime / 3, -6, 0, -4)
-sliderButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-sliderButton.BorderSizePixel = 0
-sliderButton.Text = ""
-sliderButton.Parent = timingSlider
-
-local sliderCorner = Instance.new("UICorner")
-sliderCorner.CornerRadius = UDim.new(1, 0)
-sliderCorner.Parent = sliderButton
 
 -- Кнопка PERFECT KICK
 local kickButton = Instance.new("TextButton")
@@ -200,180 +177,111 @@ local statusLabel = Instance.new("TextLabel")
 statusLabel.Size = UDim2.new(0.8, 0, 0, 30)
 statusLabel.Position = UDim2.new(0.1, 0, 0.65, 0)
 statusLabel.BackgroundTransparency = 1
-statusLabel.Text = "Статус: Ожидание"
+statusLabel.Text = "Статус: Выключен"
 statusLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
 statusLabel.Font = Enum.Font.Gotham
 statusLabel.TextSize = 13
 statusLabel.Parent = mainFrame
 
--- // ПОИСК ЗЕЛЁНОЙ КНОПКИ KICK! // --
+-- // ПОИСК КНОПКИ KICK // --
 local function FindKickButton()
-    -- Ищем кнопку KICK на экране (в ScreenGui или PlayerGui)
     for _, guiObj in pairs(player.PlayerGui:GetDescendants()) do
-        if guiObj:IsA("TextButton") or guiObj:IsA("ImageButton") then
+        if guiObj:IsA("TextButton") then
             local text = guiObj.Text or ""
             if text:upper():find("KICK") then
-                -- Проверяем что кнопка зелёная
-                local color = guiObj.BackgroundColor3
-                if color.R < 0.3 and color.G > 0.5 and color.B < 0.4 then
-                    return guiObj
-                end
+                return guiObj
             end
         end
-    end
-    
-    -- Альтернативный поиск по имени
-    for _, guiObj in pairs(player.PlayerGui:GetDescendants()) do
-        if guiObj:IsA("TextButton") and guiObj.Name:lower():find("kick") then
-            return guiObj
-        end
-    end
-    return nil
-end
-
--- // ПОИСК LUCKY BLOCK // --
-local function FindLuckyBlock()
-    local character = player.Character
-    if not character then return nil end
-    local hrp = character:FindFirstChild("HumanoidRootPart")
-    if not hrp then return nil end
-    
-    for _, obj in pairs(workspace:GetDescendants()) do
-        if obj:IsA("BasePart") and (obj.Name:lower():find("lucky") or obj.Name:lower():find("block")) then
-            local dist = (hrp.Position - obj.Position).Magnitude
-            if dist < 20 then
-                return obj
+        if guiObj:IsA("ImageButton") then
+            local text = guiObj.Text or ""
+            if text:upper():find("KICK") then
+                return guiObj
             end
         end
     end
     return nil
 end
 
--- // СИМУЛЯЦИЯ НАЖАТИЯ НА КНОПКУ // --
+-- // НАЖАТИЕ НА КНОПКУ // --
 local function ClickButton(button)
     if not button then return false end
-    
-    -- Имитируем нажатие
-    if button:IsA("TextButton") or button:IsA("ImageButton") then
+    pcall(function()
         button:CaptureMouse()
         button:MouseButton1Click:Fire()
-        -- Анимация нажатия
-        local originalColor = button.BackgroundColor3
-        button.BackgroundColor3 = Color3.fromRGB(100, 255, 100)
-        task.wait(0.05)
-        button.BackgroundColor3 = originalColor
-        return true
-    end
-    return false
-end
-
--- // ОСНОВНАЯ ФУНКЦИЯ PERFECT KICK // --
-local function PerformPerfectKick()
-    local kickBtn = FindKickButton()
-    if not kickBtn then
-        statusLabel.Text = "❌ Кнопка KICK не найдена!"
-        return false
-    end
-    
-    local luckyBlock = FindLuckyBlock()
-    if not luckyBlock then
-        statusLabel.Text = "⚠️ Lucky Block не найден!"
-        return false
-    end
-    
-    statusLabel.Text = "🎯 Нажатие на KICK..."
-    ClickButton(kickBtn)
-    Notify("⚡ Нажал KICK! Жду тайминг...", 1)
-    
-    -- Ждём тайминг зарядки
-    local startTime = tick()
-    statusLabel.Text = "⏳ Зарядка удара... " .. string.format("%.1f", timingSettings.chargeTime) .. " сек"
-    
-    -- Анимация прогресса в нотификации
-    for i = 1, math.floor(timingSettings.chargeTime * 10) do
-        if not kickEnabled then return false end
-        task.wait(0.1)
-        local percent = (tick() - startTime) / timingSettings.chargeTime
-        if percent >= 1 then break end
-    end
-    
-    statusLabel.Text = "💥 ИДЕАЛЬНЫЙ УДАР!"
-    Notify("🔥 PERFECT KICK! Бросок Lucky Block! 🔥", 1.5)
-    
-    -- Здесь имитируем бросок (удар по блоку)
-    local humanoid = player.Character and player.Character:FindFirstChild("Humanoid")
-    if humanoid then
-        -- Активируем анимацию удара
-        game:GetService("VirtualInputManager"):SendKeyEvent(true, Enum.KeyCode.E, false, game)
-        task.wait(0.05)
-        game:GetService("VirtualInputManager"):SendKeyEvent(false, Enum.KeyCode.E, false, game)
-    end
-    
+    end)
     return true
 end
 
--- // АВТОМАТИЧЕСКИЙ ЦИКЛ // --
+-- // ОСНОВНАЯ ФУНКЦИЯ // --
 local kickEnabled = false
+local isKicking = false
+
+local function PerformKick()
+    if isKicking then return end
+    isKicking = true
+    
+    local kickBtn = FindKickButton()
+    if not kickBtn then
+        statusLabel.Text = "❌ Кнопка KICK не найдена"
+        isKicking = false
+        return
+    end
+    
+    statusLabel.Text = "🎯 Нажимаю KICK..."
+    ClickButton(kickBtn)
+    Notify("⚡ Нажал KICK! Зарядка...", 1)
+    
+    -- Ждём тайминг
+    statusLabel.Text = "⏳ Зарядка " .. chargeTime .. " сек..."
+    task.wait(chargeTime)
+    
+    statusLabel.Text = "💥 PERFECT KICK!"
+    Notify("🔥 PERFECT KICK!", 1)
+    
+    -- Имитация удара
+    pcall(function()
+        game:GetService("VirtualInputManager"):SendKeyEvent(true, Enum.KeyCode.E, false, game)
+        task.wait(0.05)
+        game:GetService("VirtualInputManager"):SendKeyEvent(false, Enum.KeyCode.E, false, game)
+    end)
+    
+    statusLabel.Text = "✅ Готов к следующему удару"
+    task.wait(1)
+    isKicking = false
+end
+
+-- // ЦИКЛ // --
 local kickLoop = nil
 
-local function StartKickLoop()
+local function StartLoop()
     if kickLoop then kickLoop:Disconnect() end
-    
-    kickLoop = game:GetService("RunService").RenderStepped:Connect(function()
+    kickLoop = game:GetService("RunService").Heartbeat:Connect(function()
         if kickEnabled then
-            PerformPerfectKick()
-            task.wait(2) -- Пауза между ударами, чтобы не спамило
+            PerformKick()
+            task.wait(2.5)
         end
     end)
 end
 
-local function StopKickLoop()
+local function StopLoop()
     if kickLoop then
         kickLoop:Disconnect()
         kickLoop = nil
     end
 end
 
--- // УПРАВЛЕНИЕ СЛАЙДЕРОМ ТАЙМИНГА // --
-local dragging = false
-sliderButton.MouseButton1Down:Connect(function()
-    dragging = true
-end)
-
-game:GetService("UserInputService").InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        dragging = false
-    end
-end)
-
-game:GetService("UserInputService").InputChanged:Connect(function(input)
-    if dragging and input.UserInputType == Enum.UserInputType.Mouse then
-        local mousePos = input.Position.X
-        local sliderPos = timingSlider.AbsolutePosition.X
-        local sliderWidth = timingSlider.AbsoluteSize.X
-        local percent = math.clamp((mousePos - sliderPos) / sliderWidth, 0, 1)
-        timingSettings.chargeTime = percent * 3
-        timingSettings.chargeTime = math.round(timingSettings.chargeTime * 10) / 10
-        timingSettings.chargeTime = math.clamp(timingSettings.chargeTime, 0.5, 3)
-        
-        sliderFill.Size = UDim2.new(percent, 0, 1, 0)
-        sliderButton.Position = UDim2.new(percent, -6, 0, -4)
-        timingLabel.Text = "Тайминг зарядки: " .. timingSettings.chargeTime .. " сек"
-    end
-end)
-
 -- // КНОПКА ВКЛ/ВЫКЛ // --
 kickButton.MouseButton1Click:Connect(function()
     kickEnabled = not kickEnabled
     
     if kickEnabled then
-        StartKickLoop()
+        StartLoop()
         kickButton.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
         kickButton.Text = "PERFECT KICK (ВКЛ)"
-        statusLabel.Text = "✅ Активен | Ожидает KICK кнопку"
-        Notify("✅ Perfect Kick включён! Нажимаю KICK снизу", 2)
+        statusLabel.Text = "✅ Активен"
+        Notify("✅ Perfect Kick включён!", 2)
     else
-        StopKickLoop()
+        StopLoop()
         kickButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
         kickButton.Text = "PERFECT KICK (ВЫКЛ)"
         statusLabel.Text = "❌ Выключен"
@@ -381,7 +289,7 @@ kickButton.MouseButton1Click:Connect(function()
     end
 end)
 
--- // ОТКРЫТИЕ/ЗАКРЫТИЕ GUI // --
+-- // УПРАВЛЕНИЕ GUI // --
 local menuOpen = false
 icon.MouseButton1Click:Connect(function()
     menuOpen = not menuOpen
@@ -393,7 +301,24 @@ closeBtn.MouseButton1Click:Connect(function()
     mainFrame.Visible = false
 end)
 
--- // ЗАПУСК // --
+-- Изменение тайминга через прокрутку
+kickButton.MouseWheelBack:Connect(function()
+    chargeTime = math.max(0.5, chargeTime - 0.1)
+    timingLabel.Text = "Тайминг: " .. string.format("%.1f", chargeTime) .. " сек"
+end)
+
+kickButton.MouseWheelForward:Connect(function()
+    chargeTime = math.min(3, chargeTime + 0.1)
+    timingLabel.Text = "Тайминг: " .. string.format("%.1f", chargeTime) .. " сек"
+end)
+
+-- Запуск
 ShowSplash()
 task.wait(0.5)
-Notify("Ghost Client загружен | Perfect Kick Ready", 2)
+Notify("Ghost Client загружен!", 2)
+
+end) -- Конец pcall
+
+if not success then
+    warn("Ghost Client ошибка: " .. tostring(err))
+end
