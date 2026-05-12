@@ -1,11 +1,10 @@
--- // GHOST CLIENT - STEAL A BRAINROT // --
+-- // GHOST CLIENT - STEAL A BRAINROT (ЧАСТЬ 1/2) \\ --
 local player = game.Players.LocalPlayer
 local gui = Instance.new("ScreenGui")
 gui.Name = "GhostClient"
 gui.ResetOnSpawn = false
 gui.Parent = player:WaitForChild("PlayerGui")
 
--- // НОТИФИКАЦИИ // --
 local function Notify(msg, duration)
     duration = duration or 3
     local notifyFrame = Instance.new("Frame")
@@ -15,11 +14,9 @@ local function Notify(msg, duration)
     notifyFrame.BorderSizePixel = 0
     notifyFrame.BackgroundTransparency = 0.15
     notifyFrame.Parent = gui
-    
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 8)
     corner.Parent = notifyFrame
-    
     local text = Instance.new("TextLabel")
     text.Size = UDim2.new(1, -10, 1, 0)
     text.Position = UDim2.new(0, 5, 0, 0)
@@ -30,13 +27,11 @@ local function Notify(msg, duration)
     text.TextSize = 14
     text.TextXAlignment = Enum.TextXAlignment.Left
     text.Parent = notifyFrame
-    
     notifyFrame.Position = UDim2.new(1, 10, 0, 50)
     local tween = game:GetService("TweenService")
     local goal = {Position = UDim2.new(1, -290, 0, 50)}
     local fadeIn = tween:Create(notifyFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad), goal)
     fadeIn:Play()
-    
     task.wait(duration)
     local fadeOut = tween:Create(notifyFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {Position = UDim2.new(1, 10, 0, 50)})
     fadeOut:Play()
@@ -44,7 +39,6 @@ local function Notify(msg, duration)
     notifyFrame:Destroy()
 end
 
--- // АНИМАЦИЯ ЗАГРУЗКИ // --
 local function ShowSplash()
     local splash = Instance.new("Frame")
     splash.Size = UDim2.new(1, 0, 1, 0)
@@ -52,7 +46,6 @@ local function ShowSplash()
     splash.BackgroundTransparency = 0
     splash.BorderSizePixel = 0
     splash.Parent = gui
-    
     local text = Instance.new("TextLabel")
     text.Size = UDim2.new(0, 400, 0, 80)
     text.Position = UDim2.new(0.5, -200, 0.5, -40)
@@ -63,14 +56,12 @@ local function ShowSplash()
     text.TextSize = 48
     text.TextScaled = true
     text.Parent = splash
-    
     local tween = game:GetService("TweenService")
     tween:Create(splash, TweenInfo.new(1, Enum.EasingStyle.Quad), {BackgroundTransparency = 1}):Play()
     task.wait(1.5)
     splash:Destroy()
 end
 
--- // КРУГЛАЯ ИКОНКА // --
 local icon = Instance.new("ImageButton")
 icon.Size = UDim2.new(0, 60, 0, 60)
 icon.Position = UDim2.new(0, 15, 0, 15)
@@ -78,11 +69,9 @@ icon.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 icon.BackgroundTransparency = 0
 icon.AutoButtonColor = true
 icon.Parent = gui
-
 local iconCorner = Instance.new("UICorner")
 iconCorner.CornerRadius = UDim.new(1, 0)
 iconCorner.Parent = icon
-
 local iconText = Instance.new("TextLabel")
 iconText.Size = UDim2.new(1, 0, 1, 0)
 iconText.BackgroundTransparency = 1
@@ -93,7 +82,6 @@ iconText.TextSize = 14
 iconText.TextWrapped = true
 iconText.Parent = icon
 
--- // ОСНОВНОЕ ОКНО GUI // --
 local mainFrame = Instance.new("Frame")
 mainFrame.Size = UDim2.new(0, 450, 0, 400)
 mainFrame.Position = UDim2.new(0.5, -225, 0.5, -200)
@@ -101,18 +89,15 @@ mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
 mainFrame.BorderSizePixel = 0
 mainFrame.Visible = false
 mainFrame.Parent = gui
-
 local frameCorner = Instance.new("UICorner")
 frameCorner.CornerRadius = UDim.new(0, 8)
 frameCorner.Parent = mainFrame
 
--- Заголовок
 local titleBar = Instance.new("Frame")
 titleBar.Size = UDim2.new(1, 0, 0, 40)
 titleBar.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
 titleBar.BorderSizePixel = 0
 titleBar.Parent = mainFrame
-
 local titleText = Instance.new("TextLabel")
 titleText.Size = UDim2.new(0.7, 0, 1, 0)
 titleText.Position = UDim2.new(0, 15, 0, 0)
@@ -123,7 +108,6 @@ titleText.Font = Enum.Font.GothamBold
 titleText.TextSize = 16
 titleText.TextXAlignment = Enum.TextXAlignment.Left
 titleText.Parent = titleBar
-
 local closeBtn = Instance.new("TextButton")
 closeBtn.Size = UDim2.new(0, 40, 0, 40)
 closeBtn.Position = UDim2.new(1, -40, 0, 0)
@@ -133,19 +117,16 @@ closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 closeBtn.Font = Enum.Font.GothamBold
 closeBtn.TextSize = 20
 closeBtn.Parent = titleBar
-
 local closeCorner = Instance.new("UICorner")
 closeCorner.CornerRadius = UDim.new(0, 8)
 closeCorner.Parent = closeBtn
 
--- // ВКЛАДКИ (слева) // --
 local sidebar = Instance.new("Frame")
 sidebar.Size = UDim2.new(0, 120, 1, -40)
 sidebar.Position = UDim2.new(0, 0, 0, 40)
 sidebar.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
 sidebar.BorderSizePixel = 0
 sidebar.Parent = mainFrame
-
 local contentArea = Instance.new("Frame")
 contentArea.Size = UDim2.new(1, -120, 1, -40)
 contentArea.Position = UDim2.new(0, 120, 0, 40)
@@ -154,7 +135,6 @@ contentArea.Parent = mainFrame
 
 local tabs = {"MOVEMENT", "VISUALS"}
 local activeTab = "MOVEMENT"
-
 local tabButtons = {}
 local contentFrames = {}
 
@@ -168,9 +148,7 @@ for i, tabName in ipairs(tabs) do
     btn.Font = Enum.Font.GothamBold
     btn.TextSize = 14
     btn.Parent = sidebar
-    
     tabButtons[tabName] = btn
-    
     local content = Instance.new("Frame")
     content.Size = UDim2.new(1, -20, 1, -20)
     content.Position = UDim2.new(0, 10, 0, 10)
@@ -196,10 +174,8 @@ for tabName, btn in pairs(tabButtons) do
     end)
 end
 
--- // ============ ВКЛАДКА MOVEMENT ============ // --
 local movContent = contentFrames["MOVEMENT"]
 
--- SPEED 1.5X ФУНКЦИЯ
 local speedEnabled = false
 local originalWalkSpeed = 16
 local speedMultiplier = 1.5
@@ -213,11 +189,9 @@ speedBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 speedBtn.Font = Enum.Font.GothamBold
 speedBtn.TextSize = 16
 speedBtn.Parent = movContent
-
 local speedCorner = Instance.new("UICorner")
 speedCorner.CornerRadius = UDim.new(0, 8)
 speedCorner.Parent = speedBtn
-
 local speedStatus = Instance.new("TextLabel")
 speedStatus.Size = UDim2.new(0.9, 0, 0, 25)
 speedStatus.Position = UDim2.new(0.05, 0, 0.22, 0)
@@ -228,13 +202,11 @@ speedStatus.Font = Enum.Font.Gotham
 speedStatus.TextSize = 12
 speedStatus.Parent = movContent
 
--- Функция обновления скорости
 local function UpdateSpeed()
     local char = player.Character
     if not char then return end
     local humanoid = char:FindFirstChild("Humanoid")
     if not humanoid then return end
-    
     if speedEnabled then
         humanoid.WalkSpeed = originalWalkSpeed * speedMultiplier
     else
@@ -242,7 +214,6 @@ local function UpdateSpeed()
     end
 end
 
--- Следим за появлением персонажа
 player.CharacterAdded:Connect(function(char)
     task.wait(0.5)
     UpdateSpeed()
@@ -250,7 +221,6 @@ end)
 
 speedBtn.MouseButton1Click:Connect(function()
     speedEnabled = not speedEnabled
-    
     if speedEnabled then
         speedBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
         speedBtn.Text = "SPEED 1.5x: ВКЛ"
@@ -263,23 +233,22 @@ speedBtn.MouseButton1Click:Connect(function()
         Notify("⚡ Speed 1.5x деактивирован", 2)
     end
     UpdateSpeed()
-end)
+end)-- // GHOST CLIENT - STEAL A BRAINROT (ЧАСТЬ 2/2) \\ --
 
--- ЛИФТ-ПЛАТФОРМА
 local platformActive = false
 local currentPlatform = nil
 local platformConnection = nil
+local respawnConnection = nil
 
 local function CreatePlatform()
     local char = player.Character
     if not char then return nil end
     local hrp = char:FindFirstChild("HumanoidRootPart")
     if not hrp then return nil end
-    
-    -- Удаляем старую платформу
-    if currentPlatform then currentPlatform:Destroy() end
-    
-    -- Создаём прозрачную платформу под ногами
+    if currentPlatform then
+        pcall(function() currentPlatform:Destroy() end)
+        currentPlatform = nil
+    end
     local platform = Instance.new("Part")
     platform.Size = Vector3.new(3, 0.2, 3)
     platform.Position = hrp.Position - Vector3.new(0, 2, 0)
@@ -289,49 +258,49 @@ local function CreatePlatform()
     platform.BrickColor = BrickColor.new("Bright blue")
     platform.Material = Enum.Material.Neon
     platform.Parent = workspace
-    
-    -- Добавляем свечение
     local selection = Instance.new("SelectionBox")
     selection.Adornee = platform
     selection.Color3 = Color3.fromRGB(0, 150, 255)
     selection.Transparency = 0.5
     selection.LineThickness = 0.05
     selection.Parent = platform
-    
     return platform
+end
+
+local function PlatformMoveLoop()
+    if not platformActive then return end
+    local char = player.Character
+    if not char then return end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    if not currentPlatform or not currentPlatform.Parent then
+        currentPlatform = CreatePlatform()
+        if not currentPlatform then return end
+    end
+    currentPlatform.Position = Vector3.new(hrp.Position.X, hrp.Position.Y - 2, hrp.Position.Z)
+    local humanoid = char:FindFirstChild("Humanoid")
+    if humanoid and humanoid.Health > 0 then
+        local newPos = hrp.Position + Vector3.new(0, 40 * task.wait(), 0)
+        hrp.Position = newPos
+        currentPlatform.Position = Vector3.new(newPos.X, newPos.Y - 2, newPos.Z)
+    end
 end
 
 local function StartPlatform()
     if platformActive then return end
     platformActive = true
-    
-    platformConnection = game:GetService("RunService").RenderStepped:Connect(function()
-        if not platformActive then return end
-        
-        local char = player.Character
-        if not char then return end
-        local hrp = char:FindFirstChild("HumanoidRootPart")
-        if not hrp then return end
-        
-        -- Создаём/обновляем платформу
-        if not currentPlatform or not currentPlatform.Parent then
-            currentPlatform = CreatePlatform()
-        end
-        
-        if currentPlatform then
-            -- Двигаем платформу под персонажа
-            currentPlatform.Position = Vector3.new(hrp.Position.X, hrp.Position.Y - 2, hrp.Position.Z)
-            
-            -- Поднимаем персонажа вверх со скоростью 40
-            local humanoid = char:FindFirstChild("Humanoid")
-            if humanoid and humanoid.Health > 0 then
-                local newPos = hrp.Position + Vector3.new(0, 40 * task.wait(), 0)
-                hrp.Position = newPos
-                currentPlatform.Position = Vector3.new(newPos.X, newPos.Y - 2, newPos.Z)
+    platformConnection = game:GetService("RunService").RenderStepped:Connect(PlatformMoveLoop)
+    respawnConnection = player.CharacterAdded:Connect(function(newChar)
+        if platformActive then
+            task.wait(0.3)
+            if currentPlatform then
+                pcall(function() currentPlatform:Destroy() end)
+                currentPlatform = nil
             end
+            currentPlatform = CreatePlatform()
+            Notify("🔄 Платформа восстановлена после респавна", 1.5)
         end
     end)
-    
     Notify("🛫 Платформа активирована! Подъём 40 ст/с", 2)
 end
 
@@ -341,14 +310,17 @@ local function StopPlatform()
         platformConnection:Disconnect()
         platformConnection = nil
     end
+    if respawnConnection then
+        respawnConnection:Disconnect()
+        respawnConnection = nil
+    end
     if currentPlatform then
-        currentPlatform:Destroy()
+        pcall(function() currentPlatform:Destroy() end)
         currentPlatform = nil
     end
     Notify("🛬 Платформа деактивирована", 2)
 end
 
--- Кнопка платформы
 local platformBtn = Instance.new("TextButton")
 platformBtn.Size = UDim2.new(0.9, 0, 0, 50)
 platformBtn.Position = UDim2.new(0.05, 0, 0.4, 0)
@@ -358,11 +330,9 @@ platformBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 platformBtn.Font = Enum.Font.GothamBold
 platformBtn.TextSize = 16
 platformBtn.Parent = movContent
-
 local platformCorner = Instance.new("UICorner")
 platformCorner.CornerRadius = UDim.new(0, 8)
 platformCorner.Parent = platformBtn
-
 local platformStatus = Instance.new("TextLabel")
 platformStatus.Size = UDim2.new(0.9, 0, 0, 25)
 platformStatus.Position = UDim2.new(0.05, 0, 0.57, 0)
@@ -378,7 +348,7 @@ platformBtn.MouseButton1Click:Connect(function()
         StartPlatform()
         platformBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
         platformBtn.Text = "ПЛАТФОРМА-ЛИФТ: ВКЛ"
-        platformStatus.Text = "Статус: Включено (подъём 40 ст/с)"
+        platformStatus.Text = "Статус: Включено (подъём 40 ст/с) + Антиресет"
     else
         StopPlatform()
         platformBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
@@ -387,9 +357,7 @@ platformBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- // ============ ВКЛАДКА VISUALS ============ // --
 local visContent = contentFrames["VISUALS"]
-
 local comingSoon = Instance.new("TextLabel")
 comingSoon.Size = UDim2.new(0.9, 0, 0, 40)
 comingSoon.Position = UDim2.new(0.05, 0, 0.05, 0)
@@ -401,7 +369,6 @@ comingSoon.TextSize = 16
 comingSoon.TextXAlignment = Enum.TextXAlignment.Left
 comingSoon.Parent = visContent
 
--- // ОТКРЫТИЕ/ЗАКРЫТИЕ GUI // --
 local menuOpen = false
 icon.MouseButton1Click:Connect(function()
     menuOpen = not menuOpen
@@ -413,13 +380,6 @@ closeBtn.MouseButton1Click:Connect(function()
     mainFrame.Visible = false
 end)
 
--- // ОЧИСТКА ПРИ ВЫХОДЕ // --
-game:GetService("Players").LocalPlayer.CharacterAdded:Connect(function()
-    task.wait(0.5)
-    UpdateSpeed()
-end)
-
--- // ЗАПУСК // --
 ShowSplash()
 task.wait(0.5)
 Notify("Ghost Client загружен | Steal a Brainrot", 2)
