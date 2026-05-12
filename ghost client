@@ -119,9 +119,7 @@ titleText.Position = UDim2.new(0, 15, 0, 0)
 titleText.BackgroundTransparency = 1
 titleText.Text = "PERFECT KICK"
 titleText.TextColor3 = Color3.fromRGB(255, 255, 255)
-titleText.Font = Enum.Font.
-
-GothamBold
+titleText.Font = Enum.Font.GothamBold
 titleText.TextSize = 18
 titleText.TextXAlignment = Enum.TextXAlignment.Left
 titleText.Parent = titleBar
@@ -237,8 +235,7 @@ end
 local function FindLuckyBlock()
     local character = player.Character
     if not character then return nil end
-
-local hrp = character:FindFirstChild("HumanoidRootPart")
+    local hrp = character:FindFirstChild("HumanoidRootPart")
     if not hrp then return nil end
     
     for _, obj in pairs(workspace:GetDescendants()) do
@@ -361,9 +358,7 @@ game:GetService("UserInputService").InputChanged:Connect(function(input)
         
         sliderFill.Size = UDim2.new(percent, 0, 1, 0)
         sliderButton.Position = UDim2.new(percent, -6, 0, -4)
-        timingLabel.
-
-Text = "Тайминг зарядки: " .. timingSettings.chargeTime .. " сек"
+        timingLabel.Text = "Тайминг зарядки: " .. timingSettings.chargeTime .. " сек"
     end
 end)
 
