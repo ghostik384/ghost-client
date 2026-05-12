@@ -1,4 +1,4 @@
--- // GHOST CLIENT - ЧАСТЬ 1/2 // --
+-- // GHOST CLIENT - ЧАСТЬ 1/5 - ОСНОВА // --
 local player = game.Players.LocalPlayer
 local gui = Instance.new("ScreenGui")
 gui.Name = "GhostClient"
@@ -56,6 +56,7 @@ local function ShowSplash()
     s:Destroy()
 end
 
+-- Иконка
 local icon = Instance.new("ImageButton")
 icon.Size = UDim2.new(0,60,0,60)
 icon.Position = UDim2.new(0,15,0,15)
@@ -74,6 +75,7 @@ itxt.TextSize = 14
 itxt.TextWrapped = true
 itxt.Parent = icon
 
+-- Главное окно
 local main = Instance.new("Frame")
 main.Size = UDim2.new(0,450,0,400)
 main.Position = UDim2.new(0.5,-225,0.5,-200)
@@ -122,19 +124,19 @@ area.Position = UDim2.new(0,120,0,40)
 area.BackgroundTransparency = 1
 area.Parent = main
 
-local tabs = {"MOVEMENT","VISUALS"}
+local tabs = {"MOVEMENT","ANTI-RESET","VISUALS"}
 local tabBtns = {}
 local frames = {}
 
 for i,name in ipairs(tabs) do
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1,0,0,45)
-    btn.Position = UDim2.new(0,0,0,(i-1)*45)
+    btn.Size = UDim2.new(1,0,0,40)
+    btn.Position = UDim2.new(0,0,0,(i-1)*40)
     btn.BackgroundColor3 = i==1 and Color3.fromRGB(80,80,90) or Color3.fromRGB(35,35,40)
     btn.Text = name
     btn.TextColor3 = Color3.fromRGB(255,255,255)
     btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 14
+    btn.TextSize = 13
     btn.Parent = side
     tabBtns[name] = btn
     local f = Instance.new("Frame")
@@ -157,25 +159,24 @@ end
 
 for n,btn in pairs(tabBtns) do
     btn.MouseButton1Click:Connect(function() Switch(n) end)
-end
-
+end-- // GHOST CLIENT - ЧАСТЬ 2/5 - ДВИЖЕНИЕ // --
 local mov = frames["MOVEMENT"]
 local speedEnabled = false
 local spdBtn = Instance.new("TextButton")
-spdBtn.Size = UDim2.new(0.9,0,0,50)
+spdBtn.Size = UDim2.new(0.9,0,0,45)
 spdBtn.Position = UDim2.new(0.05,0,0.05,0)
 spdBtn.BackgroundColor3 = Color3.fromRGB(200,50,50)
 spdBtn.Text = "SPEED 1.5x: ВЫКЛ"
 spdBtn.TextColor3 = Color3.fromRGB(255,255,255)
 spdBtn.Font = Enum.Font.GothamBold
-spdBtn.TextSize = 16
+spdBtn.TextSize = 15
 spdBtn.Parent = mov
 local spdc = Instance.new("UICorner")
 spdc.CornerRadius = UDim.new(0,8)
 spdc.Parent = spdBtn
 local spdStatus = Instance.new("TextLabel")
-spdStatus.Size = UDim2.new(0.9,0,0,25)
-spdStatus.Position = UDim2.new(0.05,0,0.22,0)
+spdStatus.Size = UDim2.new(0.9,0,0,22)
+spdStatus.Position = UDim2.new(0.05,0,0.2,0)
 spdStatus.BackgroundTransparency = 1
 spdStatus.Text = "Статус: ВЫКЛ"
 spdStatus.TextColor3 = Color3.fromRGB(180,180,180)
@@ -206,7 +207,8 @@ spdBtn.MouseButton1Click:Connect(function()
         Notify("Speed 1.5x выключен",2)
     end
     UpdateSpeed()
-end)-- // GHOST CLIENT - ЧАСТЬ 2/2 // --
+end)
+
 local platformActive = false
 local currPlatform = nil
 local platConn = nil
@@ -290,20 +292,20 @@ local function StopPlat()
 end
 
 local platBtn = Instance.new("TextButton")
-platBtn.Size = UDim2.new(0.9,0,0,50)
-platBtn.Position = UDim2.new(0.05,0,0.4,0)
+platBtn.Size = UDim2.new(0.9,0,0,45)
+platBtn.Position = UDim2.new(0.05,0,0.38,0)
 platBtn.BackgroundColor3 = Color3.fromRGB(200,50,50)
 platBtn.Text = "ЛИФТ: ВЫКЛ"
 platBtn.TextColor3 = Color3.fromRGB(255,255,255)
 platBtn.Font = Enum.Font.GothamBold
-platBtn.TextSize = 16
+platBtn.TextSize = 15
 platBtn.Parent = mov
 local platc = Instance.new("UICorner")
 platc.CornerRadius = UDim.new(0,8)
 platc.Parent = platBtn
 local platStatus = Instance.new("TextLabel")
-platStatus.Size = UDim2.new(0.9,0,0,25)
-platStatus.Position = UDim2.new(0.05,0,0.57,0)
+platStatus.Size = UDim2.new(0.9,0,0,22)
+platStatus.Position = UDim2.new(0.05,0,0.53,0)
 platStatus.BackgroundTransparency = 1
 platStatus.Text = "Статус: ВЫКЛ"
 platStatus.TextColor3 = Color3.fromRGB(180,180,180)
@@ -323,8 +325,271 @@ platBtn.MouseButton1Click:Connect(function()
         platBtn.Text = "ЛИФТ: ВЫКЛ"
         platStatus.Text = "Статус: ВЫКЛ"
     end
-end)
+end)-- // GHOST CLIENT - ЧАСТЬ 3/5 - ANTI-RESET UI // --
+local ar = frames["ANTI-RESET"]
+local antiResetActive = false
+local antiResetConnections = {}
 
+-- Заголовок
+local arTitle = Instance.new("TextLabel")
+arTitle.Size = UDim2.new(0.9,0,0,30)
+arTitle.Position = UDim2.new(0.05,0,0.02,0)
+arTitle.BackgroundTransparency = 1
+arTitle.Text = "ANTI-RESET ЗАЩИТА"
+arTitle.TextColor3 = Color3.fromRGB(255,255,255)
+arTitle.Font = Enum.Font.GothamBold
+arTitle.TextSize = 16
+arTitle.TextXAlignment = Enum.TextXAlignment.Left
+arTitle.Parent = ar
+
+-- Кнопка включения
+local arBtn = Instance.new("TextButton")
+arBtn.Size = UDim2.new(0.9,0,0,45)
+arBtn.Position = UDim2.new(0.05,0,0.12,0)
+arBtn.BackgroundColor3 = Color3.fromRGB(200,50,50)
+arBtn.Text = "ANTI-RESET: ВЫКЛ"
+arBtn.TextColor3 = Color3.fromRGB(255,255,255)
+arBtn.Font = Enum.Font.GothamBold
+arBtn.TextSize = 15
+arBtn.Parent = ar
+local arc = Instance.new("UICorner")
+arc.CornerRadius = UDim.new(0,8)
+arc.Parent = arBtn
+
+-- Статус
+local arStatus = Instance.new("TextLabel")
+arStatus.Size = UDim2.new(0.9,0,0,22)
+arStatus.Position = UDim2.new(0.05,0,0.26,0)
+arStatus.BackgroundTransparency = 1
+arStatus.Text = "Статус: ВЫКЛ"
+arStatus.TextColor3 = Color3.fromRGB(180,180,180)
+arStatus.Font = Enum.Font.Gotham
+arStatus.TextSize = 12
+arStatus.Parent = ar
+
+-- Список защит
+local arList = Instance.new("ScrollingFrame")
+arList.Size = UDim2.new(0.9,0,0,220)
+arList.Position = UDim2.new(0.05,0,0.35,0)
+arList.BackgroundColor3 = Color3.fromRGB(40,40,45)
+arList.BorderSizePixel = 0
+arList.ScrollBarThickness = 6
+arList.CanvasSize = UDim2.new(0,0,0,400)
+arList.Parent = ar
+local arlc = Instance.new("UICorner")
+arlc.CornerRadius = UDim.new(0,6)
+arlc.Parent = arList
+
+-- Элементы списка защит
+local protections = {
+    {name = "Humanoid Recovery", desc = "Автовосстановление при удалении"},
+    {name = "BreakJoints Block", desc = "Блокировка вызова BreakJoints"},
+    {name = "Health Lock", desc = "Здоровье не упадёт ниже 1"},
+    {name = "Character Parent Lock", desc = "Защита от перемещения персонажа"},
+    {name = "Respawn Disabler", desc = "Отключение респавна через Player"},
+}
+
+local arItems = {}
+for i, prot in ipairs(protections) do
+    local item = Instance.new("Frame")
+    item.Size = UDim2.new(1,-10,0,35)
+    item.Position = UDim2.new(0,5,0,(i-1)*40 + 5)
+    item.BackgroundColor3 = Color3.fromRGB(50,50,55)
+    item.Parent = arList
+    local itemc = Instance.new("UICorner")
+    itemc.CornerRadius = UDim.new(0,4)
+    itemc.Parent = item
+    
+    local dot = Instance.new("Frame")
+    dot.Size = UDim2.new(0,10,0,10)
+    dot.Position = UDim2.new(0,10,0.5,-5)
+    dot.BackgroundColor3 = Color3.fromRGB(200,50,50)
+    dot.Parent = item
+    local dotc = Instance.new("UICorner")
+    dotc.CornerRadius = UDim.new(1,0)
+    dotc.Parent = dot
+    
+    local nm = Instance.new("TextLabel")
+    nm.Size = UDim2.new(0.45,0,1,0)
+    nm.Position = UDim2.new(0,30,0,0)
+    nm.BackgroundTransparency = 1
+    nm.Text = prot.name
+    nm.TextColor3 = Color3.fromRGB(255,255,255)
+    nm.Font = Enum.Font.GothamBold
+    nm.TextSize = 12
+    nm.TextXAlignment = Enum.TextXAlignment.Left
+    nm.Parent = item
+    
+    local ds = Instance.new("TextLabel")
+    ds.Size = UDim2.new(0.45,0,1,0)
+    ds.Position = UDim2.new(0.5,0,0,0)
+    ds.BackgroundTransparency = 1
+    ds.Text = prot.desc
+    ds.TextColor3 = Color3.fromRGB(150,150,150)
+    ds.Font = Enum.Font.Gotham
+    ds.TextSize = 10
+    ds.TextXAlignment = Enum.TextXAlignment.Left
+    ds.Parent = item
+    
+    arItems[i] = dot
+end-- // GHOST CLIENT - ЧАСТЬ 4/5 - ANTI-RESET ЛОГИКА // --
+local function EnableAntiReset()
+    if antiResetActive then return end
+    antiResetActive = true
+    
+    -- Обновление точек статуса
+    for _, dot in ipairs(arItems) do
+        dot.BackgroundColor3 = Color3.fromRGB(0,200,0)
+    end
+    
+    -- Защита 1: Восстановление Humanoid
+    antiResetConnections.humanoidCheck = game:GetService("RunService").Heartbeat:Connect(function()
+        pcall(function()
+            local char = player.Character
+            if not char then return end
+            local hum = char:FindFirstChild("Humanoid")
+            if not hum or not hum.Parent then
+                local newHum = Instance.new("Humanoid")
+                newHum.Parent = char
+                newHum.BreakJointsOnDeath = false
+                newHum.Health = 100
+                Notify("Anti-Reset: Humanoid восстановлен", 1)
+            end
+        end)
+    end)
+    
+    -- Защита 2: Блокировка BreakJoints
+    antiResetConnections.breakJointsBlock = player.CharacterAdded:Connect(function(char)
+        pcall(function()
+            local hum = char:WaitForChild("Humanoid", 5)
+            if hum then
+                hum.BreakJointsOnDeath = false
+                antiResetConnections.breakJointsProtect = hum:GetPropertyChangedSignal("BreakJointsOnDeath"):Connect(function()
+                    hum.BreakJointsOnDeath = false
+                end)
+                -- Полный перехват BreakJoints
+                local mt = getrawmetatable(hum) or {}
+                local oldIndex = mt.__index or hum.__index
+                if oldIndex then
+                    local hook = function(t, k)
+                        if k == "BreakJoints" then
+                            return function()
+                                Notify("Anti-Reset: BreakJoints заблокирован", 1)
+                            end
+                        end
+                        return oldIndex(t, k)
+                    end
+                    mt.__index = hook
+                    setreadonly(mt, false)
+                end
+            end
+        end)
+    end)
+    
+    -- Защита 3: Health Lock
+    antiResetConnections.healthLock = game:GetService("RunService").Heartbeat:Connect(function()
+        pcall(function()
+            local char = player.Character
+            if not char then return end
+            local hum = char:FindFirstChild("Humanoid")
+            if hum and hum.Health < 1 then
+                hum.Health = 100
+                Notify("Anti-Reset: Health восстановлен", 1)
+            end
+        end)
+    end)
+    
+    -- Защита 4: Блокировка перемещения/удаления персонажа
+    antiResetConnections.charProtect = game:GetService("RunService").Heartbeat:Connect(function()
+        pcall(function()
+            local char = player.Character
+            if char and not char:IsDescendantOf(workspace) then
+                char.Parent = workspace
+                Notify("Anti-Reset: Персонаж возвращён в Workspace", 1)
+            end
+        end)
+    end)
+    
+    -- Защита 5: Отключение респавна
+    antiResetConnections.respawnBlock = player.CharacterAdded:Connect(function(char)
+        pcall(function()
+            local hum = char:WaitForChild("Humanoid", 5)
+            if hum then
+                hum.Died:Connect(function()
+                    -- Отменяем смерть
+                    task.wait(0.1)
+                    hum.Health = 100
+                    Notify("Anti-Reset: Смерть отменена", 1)
+                end)
+            end
+        end)
+    end)
+    
+    -- Доп. защита: блокировка LoadCharacter
+    if player.LoadCharacter then
+        local oldLoad = player.LoadCharacter
+        antiResetConnections.loadCharHook = player
+        player.LoadCharacter = function(...)
+            Notify("Anti-Reset: LoadCharacter заблокирован", 2)
+            return nil
+        end
+    end
+    
+    -- Доп. защита: блокировка удаления частей тела
+    antiResetConnections.partProtect = game:GetService("RunService").Heartbeat:Connect(function()
+        pcall(function()
+            local char = player.Character
+            if not char then return end
+            local hrp = char:FindFirstChild("HumanoidRootPart")
+            local head = char:FindFirstChild("Head")
+            if hrp and not hrp:IsDescendantOf(char) then
+                hrp.Parent = char
+            end
+            if head and not head:IsDescendantOf(char) then
+                head.Parent = char
+            end
+        end)
+    end)
+    
+    Notify("Anti-Reset полностью активирован", 2)
+end
+
+local function DisableAntiReset()
+    antiResetActive = false
+    for _, conn in pairs(antiResetConnections) do
+        pcall(function() conn:Disconnect() end)
+    end
+    antiResetConnections = {}
+    
+    -- Возвращаем точки в красный
+    for _, dot in ipairs(arItems) do
+        dot.BackgroundColor3 = Color3.fromRGB(200,50,50)
+    end
+    
+    -- Восстанавливаем LoadCharacter если был перехвачен
+    pcall(function()
+        if player.LoadCharacter then
+            player.LoadCharacter = nil -- вернётся оригинальный
+        end
+    end)
+    
+    Notify("Anti-Reset выключен", 2)
+end
+
+-- Подключение кнопки
+arBtn.MouseButton1Click:Connect(function()
+    if not antiResetActive then
+        EnableAntiReset()
+        arBtn.BackgroundColor3 = Color3.fromRGB(0,150,0)
+        arBtn.Text = "ANTI-RESET: ВКЛ"
+        arStatus.Text = "Статус: АКТИВЕН (5 защит)"
+    else
+        DisableAntiReset()
+        arBtn.BackgroundColor3 = Color3.fromRGB(200,50,50)
+        arBtn.Text = "ANTI-RESET: ВЫКЛ"
+        arStatus.Text = "Статус: ВЫКЛ"
+    end
+end)-- // GHOST CLIENT - ЧАСТЬ 5/5 - VISUALS + ЗАПУСК // --
 local vis = frames["VISUALS"]
 local soon = Instance.new("TextLabel")
 soon.Size = UDim2.new(0.9,0,0,40)
