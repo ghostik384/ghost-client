@@ -1,385 +1,352 @@
--- // GHOST CLIENT - STEAL A BRAINROT (ЧАСТЬ 1/2) \\ --
+-- // GHOST CLIENT - ЧАСТЬ 1/2 // --
 local player = game.Players.LocalPlayer
 local gui = Instance.new("ScreenGui")
 gui.Name = "GhostClient"
 gui.ResetOnSpawn = false
 gui.Parent = player:WaitForChild("PlayerGui")
 
-local function Notify(msg, duration)
-    duration = duration or 3
-    local notifyFrame = Instance.new("Frame")
-    notifyFrame.Size = UDim2.new(0, 280, 0, 40)
-    notifyFrame.Position = UDim2.new(1, 10, 0, 50)
-    notifyFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 25)
-    notifyFrame.BorderSizePixel = 0
-    notifyFrame.BackgroundTransparency = 0.15
-    notifyFrame.Parent = gui
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 8)
-    corner.Parent = notifyFrame
-    local text = Instance.new("TextLabel")
-    text.Size = UDim2.new(1, -10, 1, 0)
-    text.Position = UDim2.new(0, 5, 0, 0)
-    text.BackgroundTransparency = 1
-    text.Text = msg
-    text.TextColor3 = Color3.fromRGB(255, 255, 255)
-    text.Font = Enum.Font.Gotham
-    text.TextSize = 14
-    text.TextXAlignment = Enum.TextXAlignment.Left
-    text.Parent = notifyFrame
-    notifyFrame.Position = UDim2.new(1, 10, 0, 50)
-    local tween = game:GetService("TweenService")
-    local goal = {Position = UDim2.new(1, -290, 0, 50)}
-    local fadeIn = tween:Create(notifyFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad), goal)
-    fadeIn:Play()
-    task.wait(duration)
-    local fadeOut = tween:Create(notifyFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad), {Position = UDim2.new(1, 10, 0, 50)})
-    fadeOut:Play()
+local function Notify(msg, d)
+    d = d or 3
+    local f = Instance.new("Frame")
+    f.Size = UDim2.new(0,280,0,40)
+    f.Position = UDim2.new(1,10,0,50)
+    f.BackgroundColor3 = Color3.fromRGB(20,20,25)
+    f.BorderSizePixel = 0
+    f.BackgroundTransparency = 0.15
+    f.Parent = gui
+    local c = Instance.new("UICorner")
+    c.CornerRadius = UDim.new(0,8)
+    c.Parent = f
+    local t = Instance.new("TextLabel")
+    t.Size = UDim2.new(1,-10,1,0)
+    t.Position = UDim2.new(0,5,0,0)
+    t.BackgroundTransparency = 1
+    t.Text = msg
+    t.TextColor3 = Color3.fromRGB(255,255,255)
+    t.Font = Enum.Font.Gotham
+    t.TextSize = 14
+    t.TextXAlignment = Enum.TextXAlignment.Left
+    t.Parent = f
+    f.Position = UDim2.new(1,10,0,50)
+    local ts = game:GetService("TweenService")
+    ts:Create(f, TweenInfo.new(0.3), {Position = UDim2.new(1,-290,0,50)}):Play()
+    task.wait(d)
+    ts:Create(f, TweenInfo.new(0.3), {Position = UDim2.new(1,10,0,50)}):Play()
     task.wait(0.3)
-    notifyFrame:Destroy()
+    f:Destroy()
 end
 
 local function ShowSplash()
-    local splash = Instance.new("Frame")
-    splash.Size = UDim2.new(1, 0, 1, 0)
-    splash.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    splash.BackgroundTransparency = 0
-    splash.BorderSizePixel = 0
-    splash.Parent = gui
-    local text = Instance.new("TextLabel")
-    text.Size = UDim2.new(0, 400, 0, 80)
-    text.Position = UDim2.new(0.5, -200, 0.5, -40)
-    text.BackgroundTransparency = 1
-    text.Text = "GHOST CLIENT"
-    text.TextColor3 = Color3.fromRGB(255, 255, 255)
-    text.Font = Enum.Font.GothamBold
-    text.TextSize = 48
-    text.TextScaled = true
-    text.Parent = splash
-    local tween = game:GetService("TweenService")
-    tween:Create(splash, TweenInfo.new(1, Enum.EasingStyle.Quad), {BackgroundTransparency = 1}):Play()
+    local s = Instance.new("Frame")
+    s.Size = UDim2.new(1,0,1,0)
+    s.BackgroundColor3 = Color3.fromRGB(0,0,0)
+    s.Parent = gui
+    local txt = Instance.new("TextLabel")
+    txt.Size = UDim2.new(0,400,0,80)
+    txt.Position = UDim2.new(0.5,-200,0.5,-40)
+    txt.BackgroundTransparency = 1
+    txt.Text = "GHOST CLIENT"
+    txt.TextColor3 = Color3.fromRGB(255,255,255)
+    txt.Font = Enum.Font.GothamBold
+    txt.TextSize = 48
+    txt.TextScaled = true
+    txt.Parent = s
+    game:GetService("TweenService"):Create(s, TweenInfo.new(1), {BackgroundTransparency = 1}):Play()
     task.wait(1.5)
-    splash:Destroy()
+    s:Destroy()
 end
 
 local icon = Instance.new("ImageButton")
-icon.Size = UDim2.new(0, 60, 0, 60)
-icon.Position = UDim2.new(0, 15, 0, 15)
-icon.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-icon.BackgroundTransparency = 0
-icon.AutoButtonColor = true
+icon.Size = UDim2.new(0,60,0,60)
+icon.Position = UDim2.new(0,15,0,15)
+icon.BackgroundColor3 = Color3.fromRGB(0,0,0)
 icon.Parent = gui
-local iconCorner = Instance.new("UICorner")
-iconCorner.CornerRadius = UDim.new(1, 0)
-iconCorner.Parent = icon
-local iconText = Instance.new("TextLabel")
-iconText.Size = UDim2.new(1, 0, 1, 0)
-iconText.BackgroundTransparency = 1
-iconText.Text = "ghost\nclient"
-iconText.TextColor3 = Color3.fromRGB(255, 255, 255)
-iconText.Font = Enum.Font.GothamBold
-iconText.TextSize = 14
-iconText.TextWrapped = true
-iconText.Parent = icon
+local ic = Instance.new("UICorner")
+ic.CornerRadius = UDim.new(1,0)
+ic.Parent = icon
+local itxt = Instance.new("TextLabel")
+itxt.Size = UDim2.new(1,0,1,0)
+itxt.BackgroundTransparency = 1
+itxt.Text = "ghost\nclient"
+itxt.TextColor3 = Color3.fromRGB(255,255,255)
+itxt.Font = Enum.Font.GothamBold
+itxt.TextSize = 14
+itxt.TextWrapped = true
+itxt.Parent = icon
 
-local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 450, 0, 400)
-mainFrame.Position = UDim2.new(0.5, -225, 0.5, -200)
-mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 35)
-mainFrame.BorderSizePixel = 0
-mainFrame.Visible = false
-mainFrame.Parent = gui
-local frameCorner = Instance.new("UICorner")
-frameCorner.CornerRadius = UDim.new(0, 8)
-frameCorner.Parent = mainFrame
+local main = Instance.new("Frame")
+main.Size = UDim2.new(0,450,0,400)
+main.Position = UDim2.new(0.5,-225,0.5,-200)
+main.BackgroundColor3 = Color3.fromRGB(30,30,35)
+main.Visible = false
+main.Parent = gui
+local mcorner = Instance.new("UICorner")
+mcorner.CornerRadius = UDim.new(0,8)
+mcorner.Parent = main
 
-local titleBar = Instance.new("Frame")
-titleBar.Size = UDim2.new(1, 0, 0, 40)
-titleBar.BackgroundColor3 = Color3.fromRGB(40, 40, 45)
-titleBar.BorderSizePixel = 0
-titleBar.Parent = mainFrame
-local titleText = Instance.new("TextLabel")
-titleText.Size = UDim2.new(0.7, 0, 1, 0)
-titleText.Position = UDim2.new(0, 15, 0, 0)
-titleText.BackgroundTransparency = 1
-titleText.Text = "GHOST CLIENT | STEAL A BRAINROT"
-titleText.TextColor3 = Color3.fromRGB(255, 255, 255)
-titleText.Font = Enum.Font.GothamBold
-titleText.TextSize = 16
-titleText.TextXAlignment = Enum.TextXAlignment.Left
-titleText.Parent = titleBar
-local closeBtn = Instance.new("TextButton")
-closeBtn.Size = UDim2.new(0, 40, 0, 40)
-closeBtn.Position = UDim2.new(1, -40, 0, 0)
-closeBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 65)
-closeBtn.Text = "✕"
-closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-closeBtn.Font = Enum.Font.GothamBold
-closeBtn.TextSize = 20
-closeBtn.Parent = titleBar
-local closeCorner = Instance.new("UICorner")
-closeCorner.CornerRadius = UDim.new(0, 8)
-closeCorner.Parent = closeBtn
+local title = Instance.new("Frame")
+title.Size = UDim2.new(1,0,0,40)
+title.BackgroundColor3 = Color3.fromRGB(40,40,45)
+title.Parent = main
+local ttxt = Instance.new("TextLabel")
+ttxt.Size = UDim2.new(0.7,0,1,0)
+ttxt.Position = UDim2.new(0,15,0,0)
+ttxt.BackgroundTransparency = 1
+ttxt.Text = "GHOST CLIENT"
+ttxt.TextColor3 = Color3.fromRGB(255,255,255)
+ttxt.Font = Enum.Font.GothamBold
+ttxt.TextSize = 16
+ttxt.TextXAlignment = Enum.TextXAlignment.Left
+ttxt.Parent = title
+local close = Instance.new("TextButton")
+close.Size = UDim2.new(0,40,0,40)
+close.Position = UDim2.new(1,-40,0,0)
+close.BackgroundColor3 = Color3.fromRGB(60,60,65)
+close.Text = "✕"
+close.TextColor3 = Color3.fromRGB(255,255,255)
+close.Font = Enum.Font.GothamBold
+close.TextSize = 20
+close.Parent = title
+local closec = Instance.new("UICorner")
+closec.CornerRadius = UDim.new(0,8)
+closec.Parent = close
 
-local sidebar = Instance.new("Frame")
-sidebar.Size = UDim2.new(0, 120, 1, -40)
-sidebar.Position = UDim2.new(0, 0, 0, 40)
-sidebar.BackgroundColor3 = Color3.fromRGB(25, 25, 30)
-sidebar.BorderSizePixel = 0
-sidebar.Parent = mainFrame
-local contentArea = Instance.new("Frame")
-contentArea.Size = UDim2.new(1, -120, 1, -40)
-contentArea.Position = UDim2.new(0, 120, 0, 40)
-contentArea.BackgroundTransparency = 1
-contentArea.Parent = mainFrame
+local side = Instance.new("Frame")
+side.Size = UDim2.new(0,120,1,-40)
+side.Position = UDim2.new(0,0,0,40)
+side.BackgroundColor3 = Color3.fromRGB(25,25,30)
+side.Parent = main
+local area = Instance.new("Frame")
+area.Size = UDim2.new(1,-120,1,-40)
+area.Position = UDim2.new(0,120,0,40)
+area.BackgroundTransparency = 1
+area.Parent = main
 
-local tabs = {"MOVEMENT", "VISUALS"}
-local activeTab = "MOVEMENT"
-local tabButtons = {}
-local contentFrames = {}
+local tabs = {"MOVEMENT","VISUALS"}
+local tabBtns = {}
+local frames = {}
 
-for i, tabName in ipairs(tabs) do
+for i,name in ipairs(tabs) do
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, 0, 0, 45)
-    btn.Position = UDim2.new(0, 0, 0, (i-1)*45)
-    btn.BackgroundColor3 = (i == 1) and Color3.fromRGB(80, 80, 90) or Color3.fromRGB(35, 35, 40)
-    btn.Text = tabName
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    btn.Size = UDim2.new(1,0,0,45)
+    btn.Position = UDim2.new(0,0,0,(i-1)*45)
+    btn.BackgroundColor3 = i==1 and Color3.fromRGB(80,80,90) or Color3.fromRGB(35,35,40)
+    btn.Text = name
+    btn.TextColor3 = Color3.fromRGB(255,255,255)
     btn.Font = Enum.Font.GothamBold
     btn.TextSize = 14
-    btn.Parent = sidebar
-    tabButtons[tabName] = btn
-    local content = Instance.new("Frame")
-    content.Size = UDim2.new(1, -20, 1, -20)
-    content.Position = UDim2.new(0, 10, 0, 10)
-    content.BackgroundTransparency = 1
-    content.Visible = (i == 1)
-    content.Parent = contentArea
-    contentFrames[tabName] = content
+    btn.Parent = side
+    tabBtns[name] = btn
+    local f = Instance.new("Frame")
+    f.Size = UDim2.new(1,-20,1,-20)
+    f.Position = UDim2.new(0,10,0,10)
+    f.BackgroundTransparency = 1
+    f.Visible = i==1
+    f.Parent = area
+    frames[name] = f
 end
 
-local function SwitchTab(tabName)
-    activeTab = tabName
-    for t, btn in pairs(tabButtons) do
-        btn.BackgroundColor3 = (t == tabName) and Color3.fromRGB(80, 80, 90) or Color3.fromRGB(35, 35, 40)
+local function Switch(t)
+    for n,btn in pairs(tabBtns) do
+        btn.BackgroundColor3 = n==t and Color3.fromRGB(80,80,90) or Color3.fromRGB(35,35,40)
     end
-    for t, frame in pairs(contentFrames) do
-        frame.Visible = (t == tabName)
+    for n,f in pairs(frames) do
+        f.Visible = n==t
     end
 end
 
-for tabName, btn in pairs(tabButtons) do
-    btn.MouseButton1Click:Connect(function()
-        SwitchTab(tabName)
-    end)
+for n,btn in pairs(tabBtns) do
+    btn.MouseButton1Click:Connect(function() Switch(n) end)
 end
 
-local movContent = contentFrames["MOVEMENT"]
-
+local mov = frames["MOVEMENT"]
 local speedEnabled = false
-local originalWalkSpeed = 16
-local speedMultiplier = 1.5
-
-local speedBtn = Instance.new("TextButton")
-speedBtn.Size = UDim2.new(0.9, 0, 0, 50)
-speedBtn.Position = UDim2.new(0.05, 0, 0.05, 0)
-speedBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-speedBtn.Text = "SPEED 1.5x: ВЫКЛ"
-speedBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-speedBtn.Font = Enum.Font.GothamBold
-speedBtn.TextSize = 16
-speedBtn.Parent = movContent
-local speedCorner = Instance.new("UICorner")
-speedCorner.CornerRadius = UDim.new(0, 8)
-speedCorner.Parent = speedBtn
-local speedStatus = Instance.new("TextLabel")
-speedStatus.Size = UDim2.new(0.9, 0, 0, 25)
-speedStatus.Position = UDim2.new(0.05, 0, 0.22, 0)
-speedStatus.BackgroundTransparency = 1
-speedStatus.Text = "Статус: Выключено"
-speedStatus.TextColor3 = Color3.fromRGB(180, 180, 180)
-speedStatus.Font = Enum.Font.Gotham
-speedStatus.TextSize = 12
-speedStatus.Parent = movContent
+local spdBtn = Instance.new("TextButton")
+spdBtn.Size = UDim2.new(0.9,0,0,50)
+spdBtn.Position = UDim2.new(0.05,0,0.05,0)
+spdBtn.BackgroundColor3 = Color3.fromRGB(200,50,50)
+spdBtn.Text = "SPEED 1.5x: ВЫКЛ"
+spdBtn.TextColor3 = Color3.fromRGB(255,255,255)
+spdBtn.Font = Enum.Font.GothamBold
+spdBtn.TextSize = 16
+spdBtn.Parent = mov
+local spdc = Instance.new("UICorner")
+spdc.CornerRadius = UDim.new(0,8)
+spdc.Parent = spdBtn
+local spdStatus = Instance.new("TextLabel")
+spdStatus.Size = UDim2.new(0.9,0,0,25)
+spdStatus.Position = UDim2.new(0.05,0,0.22,0)
+spdStatus.BackgroundTransparency = 1
+spdStatus.Text = "Статус: ВЫКЛ"
+spdStatus.TextColor3 = Color3.fromRGB(180,180,180)
+spdStatus.Font = Enum.Font.Gotham
+spdStatus.TextSize = 12
+spdStatus.Parent = mov
 
 local function UpdateSpeed()
-    local char = player.Character
-    if not char then return end
-    local humanoid = char:FindFirstChild("Humanoid")
-    if not humanoid then return end
-    if speedEnabled then
-        humanoid.WalkSpeed = originalWalkSpeed * speedMultiplier
-    else
-        humanoid.WalkSpeed = originalWalkSpeed
-    end
+    local c = player.Character
+    if not c then return end
+    local h = c:FindFirstChild("Humanoid")
+    if not h then return end
+    h.WalkSpeed = speedEnabled and 24 or 16
 end
 
-player.CharacterAdded:Connect(function(char)
-    task.wait(0.5)
-    UpdateSpeed()
-end)
-
-speedBtn.MouseButton1Click:Connect(function()
+player.CharacterAdded:Connect(function() task.wait(0.5) UpdateSpeed() end)
+spdBtn.MouseButton1Click:Connect(function()
     speedEnabled = not speedEnabled
     if speedEnabled then
-        speedBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
-        speedBtn.Text = "SPEED 1.5x: ВКЛ"
-        speedStatus.Text = "Статус: Включено (x" .. speedMultiplier .. ")"
-        Notify("⚡ Speed 1.5x активирован!", 2)
+        spdBtn.BackgroundColor3 = Color3.fromRGB(0,150,0)
+        spdBtn.Text = "SPEED 1.5x: ВКЛ"
+        spdStatus.Text = "Статус: ВКЛ"
+        Notify("Speed 1.5x включен",2)
     else
-        speedBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-        speedBtn.Text = "SPEED 1.5x: ВЫКЛ"
-        speedStatus.Text = "Статус: Выключено"
-        Notify("⚡ Speed 1.5x деактивирован", 2)
+        spdBtn.BackgroundColor3 = Color3.fromRGB(200,50,50)
+        spdBtn.Text = "SPEED 1.5x: ВЫКЛ"
+        spdStatus.Text = "Статус: ВЫКЛ"
+        Notify("Speed 1.5x выключен",2)
     end
     UpdateSpeed()
-end)-- // GHOST CLIENT - STEAL A BRAINROT (ЧАСТЬ 2/2) \\ --
-
+end)-- // GHOST CLIENT - ЧАСТЬ 2/2 // --
 local platformActive = false
-local currentPlatform = nil
-local platformConnection = nil
-local respawnConnection = nil
+local currPlatform = nil
+local platConn = nil
+local respConn = nil
+local bypassConn = nil
 
-local function CreatePlatform()
-    local char = player.Character
-    if not char then return nil end
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return nil end
-    if currentPlatform then
-        pcall(function() currentPlatform:Destroy() end)
-        currentPlatform = nil
-    end
-    local platform = Instance.new("Part")
-    platform.Size = Vector3.new(3, 0.2, 3)
-    platform.Position = hrp.Position - Vector3.new(0, 2, 0)
-    platform.Anchored = true
-    platform.CanCollide = true
-    platform.Transparency = 0.5
-    platform.BrickColor = BrickColor.new("Bright blue")
-    platform.Material = Enum.Material.Neon
-    platform.Parent = workspace
-    local selection = Instance.new("SelectionBox")
-    selection.Adornee = platform
-    selection.Color3 = Color3.fromRGB(0, 150, 255)
-    selection.Transparency = 0.5
-    selection.LineThickness = 0.05
-    selection.Parent = platform
-    return platform
-end
-
-local function PlatformMoveLoop()
-    if not platformActive then return end
-    local char = player.Character
-    if not char then return end
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-    if not currentPlatform or not currentPlatform.Parent then
-        currentPlatform = CreatePlatform()
-        if not currentPlatform then return end
-    end
-    currentPlatform.Position = Vector3.new(hrp.Position.X, hrp.Position.Y - 2, hrp.Position.Z)
-    local humanoid = char:FindFirstChild("Humanoid")
-    if humanoid and humanoid.Health > 0 then
-        local newPos = hrp.Position + Vector3.new(0, 40 * task.wait(), 0)
-        hrp.Position = newPos
-        currentPlatform.Position = Vector3.new(newPos.X, newPos.Y - 2, newPos.Z)
-    end
-end
-
-local function StartPlatform()
-    if platformActive then return end
-    platformActive = true
-    platformConnection = game:GetService("RunService").RenderStepped:Connect(PlatformMoveLoop)
-    respawnConnection = player.CharacterAdded:Connect(function(newChar)
-        if platformActive then
-            task.wait(0.3)
-            if currentPlatform then
-                pcall(function() currentPlatform:Destroy() end)
-                currentPlatform = nil
-            end
-            currentPlatform = CreatePlatform()
-            Notify("🔄 Платформа восстановлена после респавна", 1.5)
+local function Bypass()
+    pcall(function()
+        local c = player.Character
+        if c and c:FindFirstChild("HumanoidRootPart") then
+            c.HumanoidRootPart:SetAttribute("LastCheckedY", -99999)
         end
     end)
-    Notify("🛫 Платформа активирована! Подъём 40 ст/с", 2)
 end
 
-local function StopPlatform()
+local function MakePlatform()
+    local c = player.Character
+    if not c then return nil end
+    local hrp = c:FindFirstChild("HumanoidRootPart")
+    if not hrp then return nil end
+    if currPlatform then pcall(function() currPlatform:Destroy() end) end
+    local p = Instance.new("Part")
+    p.Size = Vector3.new(3,0.2,3)
+    p.Position = hrp.Position - Vector3.new(0,2,0)
+    p.Anchored = true
+    p.CanCollide = true
+    p.Transparency = 0.4
+    p.BrickColor = BrickColor.new("Bright blue")
+    p.Material = Enum.Material.Neon
+    p.Parent = workspace
+    local sel = Instance.new("SelectionBox")
+    sel.Adornee = p
+    sel.Color3 = Color3.fromRGB(0,150,255)
+    sel.Transparency = 0.3
+    sel.Parent = p
+    return p
+end
+
+local function MoveLoop()
+    if not platformActive then return end
+    local c = player.Character
+    if not c then return end
+    local hrp = c:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    Bypass()
+    if not currPlatform or not currPlatform.Parent then
+        currPlatform = MakePlatform()
+        if not currPlatform then return end
+    end
+    currPlatform.Position = Vector3.new(hrp.Position.X, hrp.Position.Y - 2, hrp.Position.Z)
+    local hum = c:FindFirstChild("Humanoid")
+    if hum and hum.Health > 0 then
+        hrp.Position = hrp.Position + Vector3.new(0, 40 * task.wait(), 0)
+        currPlatform.Position = Vector3.new(hrp.Position.X, hrp.Position.Y - 2, hrp.Position.Z)
+    end
+end
+
+local function StartPlat()
+    if platformActive then return end
+    platformActive = true
+    platConn = game:GetService("RunService").RenderStepped:Connect(MoveLoop)
+    bypassConn = game:GetService("RunService").Heartbeat:Connect(Bypass)
+    respConn = player.CharacterAdded:Connect(function()
+        if platformActive then
+            task.wait(0.3)
+            if currPlatform then pcall(function() currPlatform:Destroy() end) end
+            currPlatform = MakePlatform()
+            Notify("Платформа восстановлена",1)
+        end
+    end)
+    Notify("Платформа + Bypass включены",2)
+end
+
+local function StopPlat()
     platformActive = false
-    if platformConnection then
-        platformConnection:Disconnect()
-        platformConnection = nil
-    end
-    if respawnConnection then
-        respawnConnection:Disconnect()
-        respawnConnection = nil
-    end
-    if currentPlatform then
-        pcall(function() currentPlatform:Destroy() end)
-        currentPlatform = nil
-    end
-    Notify("🛬 Платформа деактивирована", 2)
+    if platConn then platConn:Disconnect() end
+    if bypassConn then bypassConn:Disconnect() end
+    if respConn then respConn:Disconnect() end
+    if currPlatform then pcall(function() currPlatform:Destroy() end) end
+    Notify("Платформа выключена",2)
 end
 
-local platformBtn = Instance.new("TextButton")
-platformBtn.Size = UDim2.new(0.9, 0, 0, 50)
-platformBtn.Position = UDim2.new(0.05, 0, 0.4, 0)
-platformBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-platformBtn.Text = "ПЛАТФОРМА-ЛИФТ: ВЫКЛ"
-platformBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-platformBtn.Font = Enum.Font.GothamBold
-platformBtn.TextSize = 16
-platformBtn.Parent = movContent
-local platformCorner = Instance.new("UICorner")
-platformCorner.CornerRadius = UDim.new(0, 8)
-platformCorner.Parent = platformBtn
-local platformStatus = Instance.new("TextLabel")
-platformStatus.Size = UDim2.new(0.9, 0, 0, 25)
-platformStatus.Position = UDim2.new(0.05, 0, 0.57, 0)
-platformStatus.BackgroundTransparency = 1
-platformStatus.Text = "Статус: Выключено"
-platformStatus.TextColor3 = Color3.fromRGB(180, 180, 180)
-platformStatus.Font = Enum.Font.Gotham
-platformStatus.TextSize = 12
-platformStatus.Parent = movContent
+local platBtn = Instance.new("TextButton")
+platBtn.Size = UDim2.new(0.9,0,0,50)
+platBtn.Position = UDim2.new(0.05,0,0.4,0)
+platBtn.BackgroundColor3 = Color3.fromRGB(200,50,50)
+platBtn.Text = "ЛИФТ: ВЫКЛ"
+platBtn.TextColor3 = Color3.fromRGB(255,255,255)
+platBtn.Font = Enum.Font.GothamBold
+platBtn.TextSize = 16
+platBtn.Parent = mov
+local platc = Instance.new("UICorner")
+platc.CornerRadius = UDim.new(0,8)
+platc.Parent = platBtn
+local platStatus = Instance.new("TextLabel")
+platStatus.Size = UDim2.new(0.9,0,0,25)
+platStatus.Position = UDim2.new(0.05,0,0.57,0)
+platStatus.BackgroundTransparency = 1
+platStatus.Text = "Статус: ВЫКЛ"
+platStatus.TextColor3 = Color3.fromRGB(180,180,180)
+platStatus.Font = Enum.Font.Gotham
+platStatus.TextSize = 12
+platStatus.Parent = mov
 
-platformBtn.MouseButton1Click:Connect(function()
+platBtn.MouseButton1Click:Connect(function()
     if not platformActive then
-        StartPlatform()
-        platformBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
-        platformBtn.Text = "ПЛАТФОРМА-ЛИФТ: ВКЛ"
-        platformStatus.Text = "Статус: Включено (подъём 40 ст/с) + Антиресет"
+        StartPlat()
+        platBtn.BackgroundColor3 = Color3.fromRGB(0,150,0)
+        platBtn.Text = "ЛИФТ: ВКЛ"
+        platStatus.Text = "Статус: ВКЛ (Bypass)"
     else
-        StopPlatform()
-        platformBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-        platformBtn.Text = "ПЛАТФОРМА-ЛИФТ: ВЫКЛ"
-        platformStatus.Text = "Статус: Выключено"
+        StopPlat()
+        platBtn.BackgroundColor3 = Color3.fromRGB(200,50,50)
+        platBtn.Text = "ЛИФТ: ВЫКЛ"
+        platStatus.Text = "Статус: ВЫКЛ"
     end
 end)
 
-local visContent = contentFrames["VISUALS"]
-local comingSoon = Instance.new("TextLabel")
-comingSoon.Size = UDim2.new(0.9, 0, 0, 40)
-comingSoon.Position = UDim2.new(0.05, 0, 0.05, 0)
-comingSoon.BackgroundTransparency = 1
-comingSoon.Text = "Визуальные функции (скоро будут добавлены)"
-comingSoon.TextColor3 = Color3.fromRGB(180, 180, 180)
-comingSoon.Font = Enum.Font.Gotham
-comingSoon.TextSize = 16
-comingSoon.TextXAlignment = Enum.TextXAlignment.Left
-comingSoon.Parent = visContent
+local vis = frames["VISUALS"]
+local soon = Instance.new("TextLabel")
+soon.Size = UDim2.new(0.9,0,0,40)
+soon.Position = UDim2.new(0.05,0,0.05,0)
+soon.BackgroundTransparency = 1
+soon.Text = "Визуальные функции (скоро)"
+soon.TextColor3 = Color3.fromRGB(180,180,180)
+soon.Font = Enum.Font.Gotham
+soon.TextSize = 16
+soon.TextXAlignment = Enum.TextXAlignment.Left
+soon.Parent = vis
 
-local menuOpen = false
+local open = false
 icon.MouseButton1Click:Connect(function()
-    menuOpen = not menuOpen
-    mainFrame.Visible = menuOpen
+    open = not open
+    main.Visible = open
 end)
-
-closeBtn.MouseButton1Click:Connect(function()
-    menuOpen = false
-    mainFrame.Visible = false
+close.MouseButton1Click:Connect(function()
+    open = false
+    main.Visible = false
 end)
 
 ShowSplash()
 task.wait(0.5)
-Notify("Ghost Client загружен | Steal a Brainrot", 2)
+Notify("Ghost Client загружен",2)
