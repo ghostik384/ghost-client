@@ -1,3 +1,8 @@
+--[[
+    GHOST CLIENT v7.1 - PLATFORM FIX
+    Платформа теперь ПОДНИМАЕТ игрока через WeldConstraint
+--]]
+
 local Logger = {
     history = {},
     maxHistory = 150
@@ -16,7 +21,7 @@ function Logger:Warn(msg) self:add("WARN", msg) end
 function Logger:Error(msg) self:add("ERROR", msg) end
 function Logger:Debug(msg) self:add("DEBUG", msg) end
 
-Logger:Info("Ghost Client v7.0 Starting")
+Logger:Info("Ghost Client v7.1 - Platform Fix Starting")
 
 local function SafeGetService(name)
     local s, r = pcall(function() return game:GetService(name) end)
@@ -34,6 +39,9 @@ if not player then Logger:Error("No LocalPlayer") return end
 
 Logger:Info("Player: " .. player.Name)
 
+-- ============================================
+-- GUI СОЗДАНИЕ
+-- ============================================
 local gui = nil
 local createdGui = false
 
@@ -59,231 +67,445 @@ local function createGUI()
     Logger:Info("GUI created")
 end
 
+-- ============================================
+-- ПЛАТФОРМА С WELDCONSTRAINT (РЕАЛЬНЫЙ ПОДЪЁМ)
+-- ============================================
 local platformActive = false
 local platformObject = nil
-local animationConnection = nil
-local protectionDisable = nil
+local platformWeld = nil
+local movementConnection = nil
+local protectionConnections = {}
+local wasPlatformActive = false
 
-local function getFootPos()
+-- Получить позицию под ногами игрока
+local function getFootPosition()
     local char = player.Character
     if not char then return nil end
     local hrp = char:FindFirstChild("HumanoidRootPart")
     if not hrp then return nil end
-    return Vector3.new(hrp.Position.X, hrp.Position.Y - 3, hrp.Position.Z)
+    
+    -- Вычисляем высоту персонажа
+    local lowestY = hrp.Position.Y
+    for _, part in ipairs(char:GetChildren()) do
+        if part:IsA("BasePart") and part ~= hrp then
+            local partBottom = part.Position.Y - (part.Size.Y / 2)
+            if partBottom < lowestY then
+                lowestY = partBottom
+            end
+        end
+    end
+    
+    -- Позиция на 0.5 студии ниже самой низкой точки
+    local footY = lowestY - 0.5
+    
+    Logger:Debug(string.format("Foot position: X=%.2f Y=%.2f Z=%.2f", 
+        hrp.Position.X, footY, hrp.Position.Z))
+    
+    return Vector3.new(hrp.Position.X, footY, hrp.Position.Z)
 end
 
-local function createPlatformStandard()
-    local char = player.Character
-    if not char then return false end
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return false end
-    local footPos = getFootPos()
-    if not footPos then return false end
+-- Метод 1: Стандартный с WeldConstraint (ОСНОВНОЙ)
+local function createPlatformWithWeld()
+    Logger:Info("Creating platform with WeldConstraint...")
     
+    local char = player.Character
+    if not char then
+        Logger:Error("No character")
+        return false
+    end
+    
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then
+        Logger:Error("No HumanoidRootPart")
+        return false
+    end
+    
+    local footPos = getFootPosition()
+    if not footPos then
+        Logger:Error("Cannot calculate foot position")
+        return false
+    end
+    
+    -- Создаём платформу
     local plat = Instance.new("Part")
-    plat.Name = "UserPlatform_1"
+    plat.Name = "UserPlatform_" .. tostring(math.random(1000, 9999))
     plat.Size = Vector3.new(10, 1, 10)
     plat.Position = footPos
-    plat.Anchored = false
+    plat.Anchored = true  -- Платформа закреплена, но игрок приварен к ней
     plat.CanCollide = true
-    plat.Transparency = 0.5
+    plat.
+
+Transparency = 0.5
     plat.BrickColor = BrickColor.new("Medium stone grey")
+    plat.Material = Enum.Material.SmoothPlastic
     plat.Parent = Workspace
     
+    -- Подсветка
+    local highlight = Instance.new("SelectionBox")
+    highlight.Adornee = plat
+    highlight.Color3 = Color3.fromRGB(100, 100, 100)
+    highlight.Transparency = 0.5
+    highlight.LineThickness = 0.05
+    highlight.Parent = plat
+    
+    -- ВАЖНО: WeldConstraint между платформой и HumanoidRootPart
+    -- Это заставит игрока подниматься вместе с платформой
     local weld = Instance.new("WeldConstraint")
+    weld.Name = "PlatformWeld"
     weld.Part0 = plat
     weld.Part1 = hrp
     weld.Parent = plat
     
     platformObject = plat
+    platformWeld = weld
+    
+    Logger:Info("Platform created, WeldConstraint active between platform and HumanoidRootPart")
+    Logger:Info("Player will now move with the platform")
+    
     return true
 end
 
-local function createPlatformAnchored()
-    local footPos = getFootPos()
+-- Метод 2: Anchored false + Weld (запасной)
+local function createPlatformUnanchored()
+    Logger:Info("Creating unanchored platform with Weld...")
+    
+    local char = player.Character
+    if not char then return false end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return false end
+    
+    local footPos = getFootPosition()
     if not footPos then return false end
     
     local plat = Instance.new("Part")
-    plat.Name = "UserPlatform_2"
+    plat.Name = "UserPlatform_" .. tostring(math.random(1000, 9999))
     plat.Size = Vector3.new(10, 1, 10)
     plat.Position = footPos
-    plat.Anchored = true
+    plat.Anchored = false  -- Не закреплена
     plat.CanCollide = true
     plat.Transparency = 0.5
     plat.BrickColor = BrickColor.new("Medium stone grey")
+    plat.Material = Enum.Material.SmoothPlastic
     plat.Parent = Workspace
     
+    local highlight = Instance.new("SelectionBox")
+    highlight.Adornee = plat
+    highlight.Color3 = Color3.fromRGB(100, 100, 100)
+    highlight.Transparency = 0.5
+    highlight.LineThickness = 0.05
+    highlight.Parent = plat
+    
+    local weld = Instance.new("WeldConstraint")
+    weld.Name = "PlatformWeld"
+    weld.Part0 = plat
+    weld.Part1 = hrp
+    weld.Parent = plat
+    
     platformObject = plat
+    platformWeld = weld
+    
     return true
 end
 
+-- Метод 3: CFrame принудительный (экстренный)
 local function createPlatformCFrame()
+    Logger:Info("Creating CFrame platform...")
+    
     local char = player.Character
     if not char then return false end
     local hrp = char:FindFirstChild("HumanoidRootPart")
     if not hrp then return false end
     
     local plat = Instance.new("Part")
-    plat.Name = "UserPlatform_3"
+    plat.Name = "UserPlatform_" .. tostring(math.random(1000, 9999))
     plat.Size = Vector3.new(10, 1, 10)
     plat.CFrame = hrp.CFrame - Vector3.new(0, 3, 0)
     plat.Anchored = true
     plat.CanCollide = true
     plat.Transparency = 0.5
     plat.BrickColor = BrickColor.new("Medium stone grey")
+    plat.Material = Enum.Material.SmoothPlastic
     plat.Parent = Workspace
     
+    local weld = Instance.new("WeldConstraint")
+    weld.Name = "PlatformWeld"
+    weld.Part0 = plat
+    weld.Part1 = hrp
+    weld.Parent = plat
+    
     platformObject = plat
+    platformWeld = weld
+    
     return true
 end
 
-local function createPlatformSimple()
-    local footPos = getFootPos()
-    if not footPos then
-        local char = player.
-
-Character
-        if char then
-            local hrp = char:FindFirstChild("HumanoidRootPart")
-            if hrp then
-                footPos = hrp.Position - Vector3.new(0, 3, 0)
-            end
-        end
-    end
-    if not footPos then return false end
-    
-    local plat = Instance.new("Part")
-    plat.Name = "UserPlatform_4"
-    plat.Size = Vector3.new(8, 0.5, 8)
-    plat.Position = footPos
-    plat.Anchored = true
-    plat.CanCollide = true
-    plat.Transparency = 0.7
-    plat.BrickColor = BrickColor.new("White")
-    plat.Parent = Workspace
-    
-    platformObject = plat
-    return true
-end
-
+-- Список методов
 local platformMethods = {
-    {name = "Standard", func = createPlatformStandard},
-    {name = "Anchored", func = createPlatformAnchored},
-    {name = "CFrame", func = createPlatformCFrame},
-    {name = "Simple", func = createPlatformSimple},
+    {name = "WeldConstraint Anchored", func = createPlatformWithWeld},
+    {name = "WeldConstraint Unanchored", func = createPlatformUnanchored},
+    {name = "CFrame Weld", func = createPlatformCFrame},
 }
 
+-- Создание платформы с перебором методов
 local function createPlatformWithFallback()
     for i, method in ipairs(platformMethods) do
-        Logger:Info("Trying method " .. i .. ": " .. method.name)
+        Logger:Info("Trying platform method " .. i .. ": " .. method.name)
         for attempt = 1, 3 do
             local success = pcall(function()
                 return method.func()
             end)
             if success and platformObject then
-                Logger:Info("Platform created with method: " .. method.name)
+                Logger:Info("PLATFORM CREATED with method: " .. method.name)
+                Logger:Info("Player WILL be lifted by the platform!")
                 return true, method.name
             end
+            Logger:Warn("Attempt " .. attempt .. " failed, retrying...")
             task.wait(0.3)
-        end
+
+end
     end
-    Logger:Error("All platform methods failed")
+    Logger:Error("ALL PLATFORM METHODS FAILED")
     return false, nil
 end
 
+-- ============================================
+-- АНИМАЦИЯ ДВИЖЕНИЯ ПЛАТФОРМЫ
+-- ============================================
+local function startPlatformMovement()
+    if not platformObject or not platformObject.Parent then
+        Logger:Error("No platform to animate")
+        return
+    end
+    
+    Logger:Info("Starting platform movement animation...")
+    
+    local baseY = platformObject.Position.Y
+    local amplitude = 20  -- Подъём на 20 студий
+    local cycleTime = 3   -- Полный цикл за 3 секунды
+    local startTime = tick()
+    
+    movementConnection = RunService.RenderStepped:Connect(function()
+        if not platformActive then return end
+        if not platformObject or not platformObject.Parent then return end
+        
+        pcall(function()
+            local elapsed = tick() - startTime
+            -- Синусоидальное движение
+            local offset = math.sin(elapsed * (2 * math.pi / cycleTime)) * amplitude
+            local newY = baseY + offset
+            
+            -- Обновляем позицию платформы
+            if platformObject.Anchored then
+                local pos = platformObject.Position
+                platformObject.Position = Vector3.new(pos.X, newY, pos.Z)
+            else
+                -- Для не Anchored используем VectorForce или прямую установку
+                platformObject.Position = Vector3.new(
+                    platformObject.Position.X,
+                    newY,
+                    platformObject.Position.Z
+                )
+            end
+            
+            -- Отладка каждые 60 кадров
+            if math.floor(elapsed * 10) % 60 == 0 then
+                Logger:Debug(string.format(
+                    "Platform Y: %.2f (base: %.2f, offset: %.2f)",
+                    newY, baseY, offset
+                ))
+            end
+        end)
+    end)
+    
+    Logger:Info("Platform movement started: amplitude=" .. amplitude .. " cycle=" .. cycleTime .. "s")
+end
+
+-- ============================================
+-- ЗАЩИТА (АНТИ-РЕСЕТ)
+-- ============================================
 local function enableProtection()
+    Logger:Info("Enabling protection...")
+    
     local char = player.Character
     if not char then return end
     local hum = char:FindFirstChild("Humanoid")
     if not hum then return end
     
+    -- Сохраняем оригинальные значения
+    local origFallDamage = hum.FallDamage
+    local origBreakJoints = hum.BreakJointsOnDeath
+    local origWalkSpeed = hum.WalkSpeed
+    
+    -- Применяем защиту
     hum.FallDamage = false
     hum.BreakJointsOnDeath = false
     hum.WalkSpeed = math.min(hum.WalkSpeed, 32)
     
-    local conn1 = RunService.Heartbeat:Connect(function()
+    Logger:Info("Protection applied: FallDamage=false, BreakJoints=false, WalkSpeed<=" .. hum.WalkSpeed)
+    
+    -- Цикл проверки здоровья
+    local healthConn = RunService.Heartbeat:Connect(function()
         pcall(function()
             if hum and hum.Parent then
-                if hum.Health <= 0 then hum.Health = hum.MaxHealth end
-                if hum.WalkSpeed > 32 then hum.WalkSpeed = 32 end
-                if hum.FallDamage == true then hum.FallDamage = false end
+                if hum.Health <= 0 then
+                    hum.Health = hum.MaxHealth
+                    Logger:Warn("Health reset prevented (anti-reset)")
+                end
+                if hum.WalkSpeed > 32 then
+                    hum.WalkSpeed = 32
+                end
+                if hum.FallDamage == true then
+                    hum.FallDamage = false
+                end
+                if hum.BreakJointsOnDeath == true then
+                    hum.BreakJointsOnDeath = false
+                end
             end
         end)
     end)
     
-    protectionDisable = function()
-        pcall(function() conn1:Disconnect() end)
+    table.insert(protectionConnections, healthConn)
+    
+    -- Возвращаем функцию отключения
+    return function()
+        pcall(function() healthConn:Disconnect() end)
         pcall(function()
             if hum and hum.Parent then
-                hum.FallDamage = true
-                hum.WalkSpeed = 16
+                hum.FallDamage = origFallDamage
+                hum.BreakJointsOnDeath = origBreakJoints
+                hum.WalkSpeed = origWalkSpeed
             end
         end)
+        Logger:Info("Protection disabled")
     end
 end
 
-local function disableProtection()
-    if protectionDisable then
-        protectionDisable()
-        protectionDisable = nil
-    end
-end
+local disableProtectionFunc = nil
 
+-- ============================================
+
+-- ОЧИСТКА ПЛАТФОРМЫ
+-- ============================================
 local function cleanupPlatform()
+    Logger:Info("Cleaning up platform...")
+    
     platformActive = false
-    if animationConnection then
-        pcall(function() animationConnection:Disconnect() end)
-        animationConnection = nil
+    
+    -- Останавливаем анимацию
+    if movementConnection then
+        pcall(function() movementConnection:Disconnect() end)
+        movementConnection = nil
+        Logger:Debug("Movement animation stopped")
     end
-    disableProtection()
+    
+    -- Отключаем защиту
+    if disableProtectionFunc then
+        disableProtectionFunc()
+        disableProtectionFunc = nil
+    end
+    
+    -- Очищаем соединения защиты
+    for _, conn in ipairs(protectionConnections) do
+        pcall(function() conn:Disconnect() end)
+    end
+    protectionConnections = {}
+    
+    -- Удаляем WeldConstraint
+    if platformWeld then
+        pcall(function() platformWeld:Destroy() end)
+        platformWeld = nil
+        Logger:Debug("WeldConstraint destroyed")
+    end
+    
+    -- Удаляем платформу
     if platformObject then
         pcall(function() platformObject:Destroy() end)
         platformObject = nil
+        Logger:Debug("Platform destroyed")
     end
+    
+    Logger:Info("Platform cleanup complete")
 end
 
+-- ============================================
+-- ГЛАВНАЯ ФУНКЦИЯ ПЕРЕКЛЮЧЕНИЯ ПЛАТФОРМЫ
+-- ============================================
 local function togglePlatform()
     if platformActive then
+        -- ВЫКЛЮЧЕНИЕ
         cleanupPlatform()
-        Logger:Info("Platform disabled")
+        Logger:Info("=== PLATFORM DISABLED ===")
         return false
     else
+        -- ВКЛЮЧЕНИЕ
+        Logger:Info("=== ENABLING PLATFORM ===")
+        
         local success, methodName = createPlatformWithFallback()
-        if success then
-            platformActive = true
-            enableProtection()
-            Logger:Info("Platform enabled with method: " .. methodName)
-            return true
+        if not success then
+            Logger:Error("Failed to create platform!")
+            return false
         end
-        return false
+        
+        platformActive = true
+        wasPlatformActive = true
+        
+        -- Запускаем анимацию движения
+        startPlatformMovement()
+        
+        -- Включаем защиту
+        disableProtectionFunc = enableProtection()
+        
+        Logger:Info("=== PLATFORM ENABLED ===")
+        Logger:Info("Method: " .. methodName)
+        Logger:Info("Player is now WELDED to platform and will be lifted!")
+        
+        return true
     end
 end
 
+-- ============================================
+-- ОБРАБОТКА РЕСПАВНА
+-- ============================================
 player.CharacterAdded:Connect(function(char)
-    if platformActive then
-        Logger:Info("Respawning platform...")
-        task.wait(0.5)
+    Logger:Info("Character respawned")
+    
+    if wasPlatformActive and platformActive then
+        Logger:Info("Platform was active, recreating...")
+        
+        -- Очищаем старую платформу
         cleanupPlatform()
-        task.wait(0.3)
+        
+        -- Ждём загрузки нового персонажа
+        task.wait(0.5)
+        
+        -- Пересоздаём платформу
         local success, methodName = createPlatformWithFallback()
         if success then
             platformActive = true
-            enableProtection()
-            Logger:Info("Platform recreated after respawn")
+            startPlatformMovement()
+            disableProtectionFunc = enableProtection()
+            Logger:Info("Platform recreated after respawn!")
+        else
+            platformActive = false
+            wasPlatformActive = false
+            Logger:Error("Failed to recreate platform after respawn")
         end
     end
 end)
 
+-- ============================================
+-- BRAINROT ESP
+-- ============================================
 local espActive = false
 local espHighlight = nil
 local espBillboard = nil
+local espUpdateConn = nil
 
 local brainrotPhrases = {
     "SIGMA MALE 💪🗿", "SKIBIDI RIZZ 🚽✨", "FANUM TAX 💰😱",
     "OHIO FINAL BOSS 🏚️👹", "GYATT DAYUM 🍑🔥", "MEWING STREAK 🧏‍♂️📈",
     "CHUNGUS MAX 🐰💯", "FLOPTOPICA KING 🏳️‍🌈👑", "NO CAP FR FR 🧢💀",
-
-"BRAINROT DETECTED 🧠⚠️", "SUSSY BAKA 😳📮", "RIZZLY BEAR 🐻💋"
+    "BRAINROT DETECTED 🧠⚠️", "SUSSY BAKA 😳📮", "RIZZLY BEAR 🐻💋"
 }
 
 local function getRandomPhrase()
@@ -300,8 +522,19 @@ local function findBestTarget()
 end
 
 local function clearESP()
-    if espHighlight then pcall(function() espHighlight:Destroy() end) espHighlight = nil end
-    if espBillboard then pcall(function() espBillboard:Destroy() end) espBillboard = nil end
+    if espUpdateConn then
+        pcall(function() espUpdateConn:Disconnect() end)
+
+espUpdateConn = nil
+    end
+    if espHighlight then
+        pcall(function() espHighlight:Destroy() end)
+        espHighlight = nil
+    end
+    if espBillboard then
+        pcall(function() espBillboard:Destroy() end)
+        espBillboard = nil
+    end
 end
 
 local function createESP(target)
@@ -351,6 +584,17 @@ local function createESP(target)
     givesLabel.Font = Enum.Font.Gotham
     givesLabel.TextSize = 12
     givesLabel.Parent = espBillboard
+    
+    -- Обновление фразы каждые 5 секунд
+    espUpdateConn = RunService.Heartbeat:Connect(function()
+        if tick() % 5 < 0.1 then
+            pcall(function()
+                if phraseLabel and phraseLabel.Parent then
+                    phraseLabel.Text = getRandomPhrase()
+                end
+            end)
+        end
+    end)
 end
 
 local function toggleESP()
@@ -373,6 +617,9 @@ local function toggleESP()
     end
 end
 
+-- ============================================
+-- СОЗДАНИЕ GUI
+-- ============================================
 createGUI()
 
 if not gui then
@@ -380,6 +627,7 @@ if not gui then
     return
 end
 
+-- Иконка
 local icon = Instance.new("TextButton")
 icon.Size = UDim2.new(0, 55, 0, 55)
 icon.Position = UDim2.new(1, -70, 0, 10)
@@ -396,6 +644,7 @@ local iconCorner = Instance.new("UICorner")
 iconCorner.CornerRadius = UDim.new(1, 0)
 iconCorner.Parent = icon
 
+-- Главное окно
 local main = Instance.new("Frame")
 main.Size = UDim2.new(0, 450, 0, 320)
 main.Position = UDim2.new(0.5, -225, 0.5, -160)
@@ -409,10 +658,13 @@ local mainCorner = Instance.new("UICorner")
 mainCorner.CornerRadius = UDim.new(0, 12)
 mainCorner.Parent = main
 
+-- Заголовок
 local titleBar = Instance.new("Frame")
 titleBar.Size = UDim2.new(1, 0, 0, 40)
 titleBar.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
-titleBar.BorderSizePixel = 0
+titleBar.
+
+BorderSizePixel = 0
 titleBar.ZIndex = 111
 titleBar.Parent = main
 
@@ -424,7 +676,7 @@ local titleText = Instance.new("TextLabel")
 titleText.Size = UDim2.new(0.7, 0, 1, 0)
 titleText.Position = UDim2.new(0, 15, 0, 0)
 titleText.BackgroundTransparency = 1
-titleText.Text = "GHOST CLIENT"
+titleText.Text = "GHOST CLIENT v7.1"
 titleText.TextColor3 = Color3.fromRGB(255, 255, 255)
 titleText.Font = Enum.Font.GothamBold
 titleText.TextSize = 16
@@ -432,6 +684,7 @@ titleText.TextXAlignment = Enum.TextXAlignment.Left
 titleText.ZIndex = 111
 titleText.Parent = titleBar
 
+-- Кнопка закрытия
 local closeBtn = Instance.new("TextButton")
 closeBtn.Size = UDim2.new(0, 35, 0, 35)
 closeBtn.Position = UDim2.new(1, -40, 0, 2)
@@ -448,6 +701,7 @@ local closeCorner = Instance.new("UICorner")
 closeCorner.CornerRadius = UDim.new(0, 8)
 closeCorner.Parent = closeBtn
 
+-- Вкладки
 local tabButtons = {}
 local tabFrames = {}
 local tabNames = {"MOVEMENT", "VISUALS"}
@@ -495,6 +749,7 @@ for name, btn in pairs(tabButtons) do
     btn.MouseButton1Click:Connect(function() switchTab(name) end)
 end
 
+-- Вкладка MOVEMENT
 local movFrame = tabFrames["MOVEMENT"]
 
 local platBtn = Instance.new("TextButton")
@@ -514,13 +769,13 @@ platCorner.CornerRadius = UDim.new(0, 8)
 platCorner.Parent = platBtn
 
 local platStatus = Instance.new("TextLabel")
-platStatus.Size = UDim2.new(0, 200, 0, 20)
+platStatus.Size = UDim2.new(0, 200, 0, 40)
 platStatus.Position = UDim2.new(0.5, -100, 0, 90)
 platStatus.BackgroundTransparency = 1
-platStatus.Text = "Status: OFF"
+platStatus.Text = "Status: OFF\nPlatform lifts player UP/DOWN"
 platStatus.TextColor3 = Color3.fromRGB(180, 180, 180)
 platStatus.Font = Enum.Font.Gotham
-platStatus.TextSize = 12
+platStatus.TextSize = 11
 platStatus.TextXAlignment = Enum.TextXAlignment.Center
 platStatus.Parent = movFrame
 
@@ -529,14 +784,19 @@ platBtn.MouseButton1Click:Connect(function()
     if result then
         platBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
         platBtn.Text = "PLATFORM: ON"
-        platStatus.Text = "Status: ON"
+        platStatus.Text = "Status: ON\nPlayer LIFTED by platform!"
+        platStatus.TextColor3 = Color3.fromRGB(0, 255, 100)
     else
         platBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
         platBtn.Text = "PLATFORM: OFF"
-        platStatus.Text = "Status: OFF"
+        platStatus.Text = "Status: OFF\nPlatform lifts player UP/DOWN"
+        platStatus.TextColor3 = Color3.
+
+fromRGB(180, 180, 180)
     end
 end)
 
+-- Вкладка VISUALS
 local visFrame = tabFrames["VISUALS"]
 
 local espBtn = Instance.new("TextButton")
@@ -579,6 +839,7 @@ espBtn.MouseButton1Click:Connect(function()
     end
 end)
 
+-- Подключение иконки и кнопки закрытия
 icon.MouseButton1Click:Connect(function()
     main.Visible = not main.Visible
 end)
@@ -587,4 +848,10 @@ closeBtn.MouseButton1Click:Connect(function()
     main.Visible = false
 end)
 
-Logger:Info("Ghost Client v7.0 Ready")
+-- Финальный лог
+Logger:Info("========================================")
+Logger:Info("GHOST CLIENT v7.1 READY")
+Logger:Info("Platform WILL lift player via WeldConstraint")
+Logger:Info("ESP targets other players with brainrot")
+Logger:Info("Click 'G' icon to open menu")
+Logger:Info("========================================")
