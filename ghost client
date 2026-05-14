@@ -1,488 +1,676 @@
 Melnyk_Maksym:
--- // GHOST CLIENT + ПЛАТФОРМА С ANTI-RESET (ЕДИНЫЙ КОД) // --
+-- // GHOST CLIENT v4.0 - ПОЛНАЯ ВЕРСИЯ С АНИМАЦИЕЙ ЗАГРУЗКИ // --
+-- // Исправление GUI + Платформа + Anti-Reset // --
+
 local player = game.Players.LocalPlayer
 local runService = game:GetService("RunService")
 local tweenService = game:GetService("TweenService")
 local workspace = game:GetService("Workspace")
 
 -- ============================================
--- СОСТОЯНИЕ ПЛАТФОРМЫ
+-- ОЧИСТКА СТАРОГО GUI (если есть)
+-- ============================================
+pcall(function()
+    local playerGui = player:WaitForChild("PlayerGui", 10)
+    if playerGui then
+        local oldGui = playerGui:FindFirstChild("GhostClient")
+        if oldGui then
+            oldGui:Destroy()
+            task.wait(0.2)
+        end
+    end
+end)
+
+-- ============================================
+-- ПРИНУДИТЕЛЬНОЕ СОЗДАНИЕ PlayerGui
+-- ============================================
+local playerGui = nil
+local attempts = 0
+repeat
+    attempts = attempts + 1
+    pcall(function()
+        playerGui = player:WaitForChild("PlayerGui", 5)
+    end)
+    if not playerGui then
+        task.wait(0.5)
+        print("[GhostClient] Ожидание PlayerGui... попытка " .. attempts)
+    end
+until playerGui or attempts >= 10
+
+if not playerGui then
+    warn("[GhostClient] ОШИБКА: PlayerGui не найден после 10 попыток!")
+    return
+end
+
+print("[GhostClient] PlayerGui найден, создаю GUI...")
+
+-- ============================================
+-- СОЗДАНИЕ ГЛАВНОГО SCREENGUI
+-- ============================================
+local gui = Instance.new("ScreenGui")
+gui.Name = "GhostClient"
+gui.ResetOnSpawn = false
+gui.Enabled = true
+gui.IgnoreGuiInset = true
+gui.Parent = playerGui
+
+task.wait(0.5) -- Задержка для избежания конфликтов
+
+-- ============================================
+-- ФУНКЦИЯ УВЕДОМЛЕНИЙ
+-- ============================================
+local function Notify(msg, d)
+    d = d or 3
+    pcall(function()
+        local f = Instance.new("Frame")
+        f.Name = "Notification"
+        f.Size = UDim2.new(0, 300, 0, 45)
+        f.Position = UDim2.new(1, 10, 0, 60)
+        f.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
+        f.BorderSizePixel = 0
+        f.BackgroundTransparency = 0.1
+        f.ZIndex = 100
+        f.Parent = gui
+        
+        local c = Instance.new("UICorner")
+        c.CornerRadius = UDim.new(0, 10)
+        c.Parent = f
+        
+        -- Иконка
+        local icon = Instance.new("TextLabel")
+        icon.Size = UDim2.new(0, 30, 0, 30)
+        icon.Position = UDim2.new(0, 10, 0.5, -15)
+        icon.BackgroundTransparency = 1
+        icon.Text = "👻"
+        icon.TextSize = 20
+        icon.Parent = f
+        
+        local t = Instance.new("TextLabel")
+        t.Size = UDim2.new(1, -50, 1, 0)
+        t.Position = UDim2.new(0, 45, 0, 0)
+        t.BackgroundTransparency = 1
+        t.Text = msg
+        t.TextColor3 = Color3.fromRGB(255, 255, 255)
+        t.Font = Enum.Font.Gotham
+        t.TextSize = 14
+        t.TextXAlignment = Enum.TextXAlignment.Left
+        t.Parent = f
+        
+        -- Анимация появления
+        tweenService:Create(f, TweenInfo.new(0.4, Enum.EasingStyle.Back), 
+            {Position = UDim2.new(1, -310, 0, 60)}):Play()
+        task.wait(d)
+        tweenService:Create(f, TweenInfo.new(0.3, Enum.EasingStyle.Quad), 
+            {Position = UDim2.new(1, 10, 0, 60)}):Play()
+        task.wait(0.3)
+        f:Destroy()
+    end)
+end
+
+-- ============================================
+-- АНИМАЦИЯ ЗАГРУЗКИ
+-- ============================================
+local function ShowLoadingScreen()
+    print("[GhostClient] Запуск анимации загрузки...")
+    
+    -- Затемнённый фон
+    local bg = Instance.new("Frame")
+    bg.Name = "LoadingBG"
+    bg.Size = UDim2.new(1, 0, 1, 0)
+    bg.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    bg.BackgroundTransparency = 1
+    bg.BorderSizePixel = 0
+    bg.ZIndex = 200
+    bg.Parent = gui
+    
+    -- Анимация затемнения
+    tweenService:Create(bg, TweenInfo.new(0.5), {BackgroundTransparency = 0.7}):Play()
+    
+    -- Заголовок
+    local title = Instance.new("TextLabel")
+    title.Name = "LoadingTitle"
+    title.Size = UDim2.new(0, 500, 0, 60)
+
+title.Position = UDim2.new(0.5, -250, 0.4, -30)
+    title.BackgroundTransparency = 1
+    title.Text = "GHOST CLIENT"
+    title.TextColor3 = Color3.fromRGB(255, 50, 150) -- Неоново-розовый
+    title.Font = Enum.Font.GothamBold
+    title.TextSize = 48
+    title.TextScaled = true
+    title.ZIndex = 201
+    title.TextTransparency = 1
+    title.Parent = bg
+    
+    -- Анимация появления заголовка
+    tweenService:Create(title, TweenInfo.new(0.8, Enum.EasingStyle.Back), 
+        {TextTransparency = 0}):Play()
+    
+    -- Подзаголовок
+    local subtitle = Instance.new("TextLabel")
+    subtitle.Name = "LoadingSubtitle"
+    subtitle.Size = UDim2.new(0, 400, 0, 30)
+    subtitle.Position = UDim2.new(0.5, -200, 0.4, 40)
+    subtitle.BackgroundTransparency = 1
+    subtitle.Text = "Загрузка читов..."
+    subtitle.TextColor3 = Color3.fromRGB(200, 200, 200)
+    subtitle.Font = Enum.Font.Gotham
+    subtitle.TextSize = 18
+    subtitle.ZIndex = 201
+    subtitle.TextTransparency = 1
+    subtitle.Parent = bg
+    
+    tweenService:Create(subtitle, TweenInfo.new(0.8, Enum.EasingStyle.Back), 
+        {TextTransparency = 0}):Play()
+    
+    -- Полоска загрузки (фон)
+    local barBg = Instance.new("Frame")
+    barBg.Name = "LoadingBarBg"
+    barBg.Size = UDim2.new(0, 320, 0, 24)
+    barBg.Position = UDim2.new(0.5, -160, 0.5, -12)
+    barBg.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
+    barBg.BorderSizePixel = 0
+    barBg.ZIndex = 201
+    barBg.BackgroundTransparency = 1
+    barBg.Parent = bg
+    
+    local barBgCorner = Instance.new("UICorner")
+    barBgCorner.CornerRadius = UDim.new(0, 12)
+    barBgCorner.Parent = barBg
+    
+    tweenService:Create(barBg, TweenInfo.new(0.5), {BackgroundTransparency = 0}):Play()
+    
+    -- Полоска загрузки (заливка)
+    local barFill = Instance.new("Frame")
+    barFill.Name = "LoadingBarFill"
+    barFill.Size = UDim2.new(0, 0, 1, 0) -- Начинается с 0
+    barFill.Position = UDim2.new(0, 0, 0, 0)
+    barFill.BackgroundColor3 = Color3.fromRGB(255, 50, 150) -- Неоново-розовый
+    barFill.BorderSizePixel = 0
+    barFill.ZIndex = 202
+    barFill.Parent = barBg
+    
+    local barFillCorner = Instance.new("UICorner")
+    barFillCorner.CornerRadius = UDim.new(0, 12)
+    barFillCorner.Parent = barFill
+    
+    -- Текст процентов
+    local percentText = Instance.new("TextLabel")
+    percentText.Name = "PercentText"
+    percentText.Size = UDim2.new(0, 100, 0, 30)
+    percentText.Position = UDim2.new(0.5, -50, 0.5, 20)
+    percentText.BackgroundTransparency = 1
+    percentText.Text = "0%"
+    percentText.TextColor3 = Color3.fromRGB(255, 255, 255)
+    percentText.Font = Enum.Font.GothamBold
+    percentText.TextSize = 20
+    percentText.ZIndex = 201
+    percentText.TextTransparency = 1
+    percentText.Parent = bg
+    
+    tweenService:Create(percentText, TweenInfo.new(0.5), {TextTransparency = 0}):Play()
+    
+    -- Анимация загрузки: от 0% до 100% за 7.5 секунд
+    local totalSteps = 100
+    local stepTime = 7.5 / totalSteps -- 0.075 секунд на шаг
+    
+    for i = 1, totalSteps do
+        local percent = i
+        local fillWidth = (320 * percent) / 100
+        
+        pcall(function()
+            barFill.Size = UDim2.new(0, fillWidth, 1, 0)
+            percentText.Text = percent .. "%"
+            
+            -- Меняем цвет заливки от тёмного к яркому
+            local r = 255
+            local g = math.floor(50 + (percent * 1.5))
+            local b = math.floor(150 - (percent * 0.5))
+            barFill.BackgroundColor3 = Color3.fromRGB(r, math.min(g, 255), math.max(b, 50))
+        end)
+        
+        task.wait(stepTime)
+    end
+    
+    -- Завершение загрузки
+    task.wait(0.3)
+    
+    -- Анимация исчезновения
+    tweenService:Create(bg, TweenInfo.new(0.5), {BackgroundTransparency = 1}):Play()
+    task.wait(0.5)
+    bg:Destroy()
+    
+    print("[GhostClient] Загрузка завершена!")
+end
+
+-- ============================================
+-- СОСТОЯНИЕ ПЛАТФОРМЫ (глобальное)
 -- ============================================
 local platformActive = false
 local platformPart = nil
 local moveConnection = nil
+
 local healthConnection = nil
 local speedConnection = nil
 local respawnConnection = nil
 local highlightBox = nil
 
 -- ============================================
--- ВНУТРЕННИЕ ФУНКЦИИ ПЛАТФОРМЫ
+-- ФУНКЦИИ ПЛАТФОРМЫ
 -- ============================================
 local function CreatePlatform()
- local char = player.Character
- if not char then return nil, nil end
- local hrp = char:FindFirstChild("HumanoidRootPart")
- if not hrp then return nil, nil end
+    local char = player.Character
+    if not char then return nil, nil end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return nil, nil end
 
- local plat = Instance.new("Part")
- plat.Name = "AntiResetPlatform"
- plat.Size = Vector3.new(10, 1, 10)
- plat.Position = Vector3.new(hrp.Position.X, hrp.Position.Y - 3, hrp.Position.Z)
- plat.Anchored = true
- plat.CanCollide = true
- plat.Transparency = 0.5
- plat.BrickColor = BrickColor.new("Medium stone grey")
- plat.Material = Enum.Material.SmoothPlastic
- plat.Parent = workspace
+    local plat = Instance.new("Part")
+    plat.Name = "AntiResetPlatform"
+    plat.Size = Vector3.new(10, 1, 10)
+    plat.Position = Vector3.new(hrp.Position.X, hrp.Position.Y - 3, hrp.Position.Z)
+    plat.Anchored = true
+    plat.CanCollide = true
+    plat.Transparency = 0.5
+    plat.BrickColor = BrickColor.new("Medium stone grey")
+    plat.Material = Enum.Material.SmoothPlastic
+    plat.Parent = workspace
 
- local highlight = Instance.new("SelectionBox")
- highlight.Adornee = plat
- highlight.Color3 = Color3.fromRGB(100, 100, 100)
- highlight.Transparency = 0.5
- highlight.LineThickness = 0.05
- highlight.Parent = plat
+    local highlight = Instance.new("SelectionBox")
+    highlight.Adornee = plat
+    highlight.Color3 = Color3.fromRGB(100, 100, 100)
+    highlight.Transparency = 0.5
+    highlight.LineThickness = 0.05
+    highlight.Parent = plat
 
- return plat, highlight
+    return plat, highlight
 end
 
 local function CleanupPlatform()
- platformActive = false
- if moveConnection then pcall(function() moveConnection:Disconnect() end) moveConnection = nil end
- if healthConnection then pcall(function() healthConnection:Disconnect() end) healthConnection = nil end
- if speedConnection then pcall(function() speedConnection:Disconnect() end) speedConnection = nil end
- if respawnConnection then pcall(function() respawnConnection:Disconnect() end) respawnConnection = nil end
- if highlightBox then pcall(function() highlightBox:Destroy() end) highlightBox = nil end
- if platformPart then pcall(function() platformPart:Destroy() end) platformPart = nil end
+    platformActive = false
+    if moveConnection then pcall(function() moveConnection:Disconnect() end) moveConnection = nil end
+    if healthConnection then pcall(function() healthConnection:Disconnect() end) healthConnection = nil end
+    if speedConnection then pcall(function() speedConnection:Disconnect() end) speedConnection = nil end
+    if respawnConnection then pcall(function() respawnConnection:Disconnect() end) respawnConnection = nil end
+    if highlightBox then pcall(function() highlightBox:Destroy() end) highlightBox = nil end
+    if platformPart then pcall(function() platformPart:Destroy() end) platformPart = nil end
 
- pcall(function()
-  local char = player.Character
-  if char then
-   local hum = char:FindFirstChild("Humanoid")
-   if hum then
-    hum.FallDamage = true
-    hum.BreakJointsOnDeath = true
-    hum.WalkSpeed = 16
-   end
-  end
- end)
+    pcall(function()
+        local char = player.Character
+        if char then
+            local hum = char:FindFirstChild("Humanoid")
+            if hum then
+                hum.FallDamage = true
+                hum.BreakJointsOnDeath = true
+                hum.WalkSpeed = 16
+            end
+        end
+    end)
 end
 
 local function SetupAntiReset(char)
- if not char then return end
- local hum = char:WaitForChild("Humanoid", 5)
- if not hum then return end
- hum.FallDamage = false
- hum.BreakJointsOnDeath = false
- hum.WalkSpeed = 16
+    if not char then return end
+    local hum = char:WaitForChild("Humanoid", 5)
+    if not hum then return end
+    hum.FallDamage = false
+    hum.BreakJointsOnDeath = false
+    hum.WalkSpeed = 16
 
- if respawnConnection then respawnConnection:Disconnect() end
- respawnConnection = hum:GetPropertyChangedSignal("BreakJointsOnDeath"):Connect(function()
-  if platformActive then hum.BreakJointsOnDeath = false end
- end)
- return hum
+    if respawnConnection then respawnConnection:Disconnect() end
+    respawnConnection = hum:GetPropertyChangedSignal("BreakJointsOnDeath"):Connect(function()
+        if platformActive then hum.BreakJointsOnDeath = false end
+    end)
+    return hum
 end
 
 local function StartPlatformMovement(plat)
- if not plat then return end
- local baseY = plat.Position.Y
- local movingUp = true
- local amplitude = 20
- local cycleTime = 3
+    if not plat then return end
+    local baseY = plat.Position.Y
+    local movingUp = true
+    local amplitude = 20
+    local cycleTime = 3
 
- moveConnection = runService.RenderStepped:Connect(function(deltaTime)
-  if not platformActive then return end
-  if not plat or not plat.Parent then return end
-  pcall(function()
-   local char = player.Character
-   if not char then return end
-   local hrp = char:FindFirstChild("HumanoidRootPart")
-   if not hrp then return end
-   plat.Position = Vector3.new(hrp.Position.X, plat.Position.Y, hrp.Position.Z)
-   local speed = (amplitude * 2) / cycleTime
-   if movingUp then
-    plat.Position = plat.Position + Vector3.new(0, speed * deltaTime, 0)
-    if plat.Position.Y >= baseY + amplitude then
-     plat.Position = Vector3.new(plat.Position.X, baseY + amplitude, plat.Position.Z)
-     movingUp = false
-    end
-   else
-    plat.Position = plat.Position - Vector3.new(0, speed * deltaTime, 0)
-    if plat.Position.Y <= baseY then
-     plat.Position = Vector3.new(plat.Position.X, baseY, plat.Position.Z)
-     movingUp = true
-    end
-   end
-  end)
- end)
+    moveConnection = runService.RenderStepped:Connect(function(deltaTime)
+        if not platformActive then return end
+        if not plat or not plat.Parent then return end
+        pcall(function()
+            local char = player.Character
+            if not char then return end
+            local hrp = char:FindFirstChild("HumanoidRootPart")
+            if not hrp then return end
+            plat.Position = Vector3.new(hrp.Position.X, plat.Position.Y, hrp.Position.Z)
+            local speed = (amplitude * 2) / cycleTime
+            if movingUp then
+                plat.Position = plat.Position + Vector3.new(0, speed * deltaTime, 0)
+                if plat.Position.Y >= baseY + amplitude then
+                    plat.Position = Vector3.new(plat.Position.X, baseY + amplitude, plat.Position.Z)
+                    movingUp = false
+                end
+            else
+                plat.Position = plat.Position - Vector3.new(0, speed * deltaTime, 0)
+                if plat.Position.Y <= baseY then
+                    plat.Position = Vector3.new(plat.Position.X, baseY, plat.Position.Z)
+                    movingUp = true
+                end
+            end
+        end)
+    end)
 end
 
 local function StartHealthCheck()
- healthConnection = runService.Heartbeat:Connect(function()
+    healthConnection = runService.Heartbeat:Connect(function()
 
 if not platformActive then return end
-  pcall(function()
-   local char = player.Character
-   if not char then return end
-   local hum = char:FindFirstChild("Humanoid")
-   if not hum then return end
-   if hum.Health <= 0 then hum.Health = hum.MaxHealth end
-   if hum.BreakJointsOnDeath == true then hum.BreakJointsOnDeath = false end
-   if hum.FallDamage == true then hum.FallDamage = false end
-   local hrp = char:FindFirstChild("HumanoidRootPart")
-   local head = char:FindFirstChild("Head")
-   if hrp and not hrp:IsDescendantOf(char) then hrp.Parent = char end
-   if head and not head:IsDescendantOf(char) then head.Parent = char end
-   if not char:IsDescendantOf(workspace) then char.Parent = workspace end
-  end)
- end)
+        pcall(function()
+            local char = player.Character
+            if not char then return end
+            local hum = char:FindFirstChild("Humanoid")
+            if not hum then return end
+            if hum.Health <= 0 then hum.Health = hum.MaxHealth end
+            if hum.BreakJointsOnDeath == true then hum.BreakJointsOnDeath = false end
+            if hum.FallDamage == true then hum.FallDamage = false end
+            local hrp = char:FindFirstChild("HumanoidRootPart")
+            local head = char:FindFirstChild("Head")
+            if hrp and not hrp:IsDescendantOf(char) then hrp.Parent = char end
+            if head and not head:IsDescendantOf(char) then head.Parent = char end
+            if not char:IsDescendantOf(workspace) then char.Parent = workspace end
+        end)
+    end)
 end
 
 local function StartSpeedLimit()
- speedConnection = runService.RenderStepped:Connect(function()
-  if not platformActive then return end
-  pcall(function()
-   local char = player.Character
-   if not char then return end
-   local hum = char:FindFirstChild("Humanoid")
-   if not hum then return end
-   if hum.WalkSpeed > 32 then hum.WalkSpeed = 32 end
-  end)
- end)
+    speedConnection = runService.RenderStepped:Connect(function()
+        if not platformActive then return end
+        pcall(function()
+            local char = player.Character
+            if not char then return end
+            local hum = char:FindFirstChild("Humanoid")
+            if not hum then return end
+            if hum.WalkSpeed > 32 then hum.WalkSpeed = 32 end
+        end)
+    end)
 end
 
 local function SetupRespawnHandler()
- respawnConnection = player.CharacterAdded:Connect(function(char)
-  if not platformActive then return end
-  task.wait(0.5)
-  SetupAntiReset(char)
-  if platformPart then
-   local hrp = char:FindFirstChild("HumanoidRootPart")
-   if hrp then
-    platformPart.Position = Vector3.new(hrp.Position.X, hrp.Position.Y - 3, hrp.Position.Z)
-   end
-  end
- end)
+    respawnConnection = player.CharacterAdded:Connect(function(char)
+        if not platformActive then return end
+        task.wait(0.5)
+        SetupAntiReset(char)
+        if platformPart then
+            local hrp = char:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                platformPart.Position = Vector3.new(hrp.Position.X, hrp.Position.Y - 3, hrp.Position.Z)
+            end
+        end
+    end)
 end
 
 -- ============================================
--- ГЛАВНАЯ ФУНКЦИЯ TogglePlatform()
+-- ФУНКЦИЯ TogglePlatform
 -- ============================================
 local function TogglePlatform()
- if platformActive then
-  CleanupPlatform()
- else
-  local char = player.Character
-  if not char then return end
-  local plat, highlight = CreatePlatform()
-  if not plat then return end
-  platformPart = plat
-  highlightBox = highlight
-  platformActive = true
-  SetupAntiReset(char)
-  StartPlatformMovement(plat)
-  StartHealthCheck()
-  StartSpeedLimit()
-  SetupRespawnHandler()
- end
+    if platformActive then
+        CleanupPlatform()
+        print("[GhostClient] Платформа выключена")
+        return false
+    else
+        local char = player.Character
+        if not char then
+            warn("[GhostClient] Нет персонажа!")
+            return false
+        end
+        local plat, highlight = CreatePlatform()
+        if not plat then
+            warn("[GhostClient] Не удалось создать платформу!")
+            return false
+        end
+        platformPart = plat
+        highlightBox = highlight
+        platformActive = true
+        SetupAntiReset(char)
+        StartPlatformMovement(plat)
+        StartHealthCheck()
+        StartSpeedLimit()
+        SetupRespawnHandler()
+        print("[GhostClient] Платформа включена!")
+        return true
+    end
 end
 
 -- ============================================
--- GHOST CLIENT GUI
+-- СОЗДАНИЕ ГЛАВНОГО GUI (после загрузки)
 -- ============================================
-local gui = Instance.new("ScreenGui")
-gui.Name = "GhostClient"
-gui.ResetOnSpawn = false
-gui.Parent = player:WaitForChild("PlayerGui")
+local function CreateMainGUI()
+    print("[GhostClient] Создание главного GUI...")
+    
+    -- Иконка (правая верхняя часть)
+    local icon = Instance.new("ImageButton")
+    icon.Name = "MainIcon"
+    icon.Size = UDim2.new(0, 60, 0, 60)
+    icon.Position = UDim2.new(1, -70, 0, 10)
+    icon.BackgroundColor3 = Color3.fromRGB(20, 20, 40)
+    icon.BorderSizePixel = 0
+    icon.AutoButtonColor = false
+    icon.ZIndex = 50
+    icon.Parent = gui
+    
+    local iconCorner = Instance.new("UICorner")
+    iconCorner.CornerRadius = UDim.new(1, 0)
+    iconCorner.Parent = icon
+    
+    -- Текст иконки
+    local iconText = Instance.new("TextLabel")
+    iconText.Size = UDim2.new(1, 0, 1, 0)
+    iconText.BackgroundTransparency = 1
+    iconText.Text = "G"
+    iconText.TextColor3 = Color3.fromRGB(255, 255, 255)
+    iconText.Font = Enum.Font.GothamBold
+    iconText.TextSize = 28
+    iconText.Parent = icon
+    
+    -- Анимация появления иконки
+    icon.BackgroundTransparency = 1
+    iconText.TextTransparency = 1
+    tweenService:Create(icon, TweenInfo.new(0.5, Enum.EasingStyle.Back), 
+        {BackgroundTransparency = 0}):Play()
+    tweenService:Create(iconText, TweenInfo.new(0.5), 
+        {TextTransparency = 0}):Play()
+    
+    -- Главное окно
 
-local function Notify(msg, d)
- d = d or 3
- local f = Instance.new("Frame")
- f.Size = UDim2.new(0,280,0,40)
- f.Position = UDim2.new(1,10,0,50)
- f.BackgroundColor3 = Color3.fromRGB(20,20,25)
- f.BorderSizePixel = 0
- f.BackgroundTransparency = 0.15
- f.Parent = gui
- local c = Instance.new("UICorner")
- c.CornerRadius = UDim.new(0,8)
- c.Parent = f
- local t = Instance.new("TextLabel")
- t.Size = UDim2.new(1,-10,1,0)
- t.Position = UDim2.new(0,5,0,0)
- t.BackgroundTransparency = 1
- t.Text = msg
- t.TextColor3 = Color3.fromRGB(255,255,255)
- t.Font = Enum.Font.Gotham
- t.TextSize = 14
- t.TextXAlignment = Enum.TextXAlignment.Left
- t.Parent = f
- f.Position = UDim2.new(1,10,0,50)
- local ts = game:GetService("TweenService")
- ts:Create(f, TweenInfo.new(0.3), {Position = UDim2.new(1,-290,0,50)}):Play()
- task.wait(d)
- ts:Create(f, TweenInfo.new(0.3), {Position = UDim2.new(1,10,0,50)}):Play()
- task.wait(0.3)
- f:Destroy()
-end
-
-local function ShowSplash()
- local s = Instance.new("Frame")
- s.Size = UDim2.new(1,0,1,0)
- s.BackgroundColor3 = Color3.fromRGB(0,0,0)
- s.Parent = gui
- local txt = Instance.new("TextLabel")
- txt.Size = UDim2.new(0,400,0,80)
- txt.Position = UDim2.new(0.5,-200,0.5,-40)
- txt.BackgroundTransparency = 1
- txt.Text = "GHOST CLIENT"
- txt.TextColor3 = Color3.fromRGB(255,255,255)
- txt.Font = Enum.Font.GothamBold
- txt.TextSize = 48
- txt.TextScaled = true
- txt.Parent = s
- tweenService:Create(s, TweenInfo.new(1), {BackgroundTransparency = 1}):Play()
- task.wait(1.5)
- s:Destroy()
-end
-
--- Иконка
-local icon = Instance.new("ImageButton")
-icon.Size = UDim2.new(0,60,0,60)
-icon.Position = UDim2.new(0,15,0,15)
-icon.BackgroundColor3 = Color3.fromRGB(0,0,0)
-icon.Parent = gui
-local ic = Instance.new("UICorner")
-ic.CornerRadius = UDim.new(1,0)
-ic.Parent = icon
-local itxt = Instance.new("TextLabel")
-itxt.
-
-Size = UDim2.new(1,0,1,0)
-itxt.BackgroundTransparency = 1
-itxt.Text = "ghost\nclient"
-itxt.TextColor3 = Color3.fromRGB(255,255,255)
-itxt.Font = Enum.Font.GothamBold
-itxt.TextSize = 14
-itxt.TextWrapped = true
-itxt.Parent = icon
-
--- Главное окно
 local main = Instance.new("Frame")
-main.Size = UDim2.new(0,480,0,380)
-main.Position = UDim2.new(0.5,-240,0.5,-190)
-main.BackgroundColor3 = Color3.fromRGB(30,30,35)
-main.Visible = false
-main.Parent = gui
-local mcorner = Instance.new("UICorner")
-mcorner.CornerRadius = UDim.new(0,8)
-mcorner.Parent = main
+    main.Name = "MainWindow"
+    main.Size = UDim2.new(0, 500, 0, 400)
+    main.Position = UDim2.new(0.5, -250, 0.5, -200)
+    main.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+    main.BorderSizePixel = 0
+    main.Visible = false
+    main.ZIndex = 60
+    main.Parent = gui
+    
+    local mainCorner = Instance.new("UICorner")
+    mainCorner.CornerRadius = UDim.new(0, 12)
+    mainCorner.Parent = main
+    
+    -- Тень окна
+    local shadow = Instance.new("Frame")
+    shadow.Name = "Shadow"
+    shadow.Size = UDim2.new(1, 0, 1, 0)
+    shadow.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    shadow.BackgroundTransparency = 0.5
+    shadow.BorderSizePixel = 0
+    shadow.ZIndex = 59
+    shadow.Parent = main
+    
+    -- Заголовок окна
+    local titleBar = Instance.new("Frame")
+    titleBar.Name = "TitleBar"
+    titleBar.Size = UDim2.new(1, 0, 0, 45)
+    titleBar.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
+    titleBar.BorderSizePixel = 0
+    titleBar.ZIndex = 61
+    titleBar.Parent = main
+    
+    local titleCorner = Instance.new("UICorner")
+    titleCorner.CornerRadius = UDim.new(0, 12)
+    titleCorner.Parent = titleBar
+    
+    -- Текст заголовка
+    local titleText = Instance.new("TextLabel")
+    titleText.Size = UDim2.new(0.7, 0, 1, 0)
+    titleText.Position = UDim2.new(0, 15, 0, 0)
+    titleText.BackgroundTransparency = 1
+    titleText.Text = "👻 GHOST CLIENT MAIN MENU"
+    titleText.TextColor3 = Color3.fromRGB(255, 255, 255)
+    titleText.Font = Enum.Font.GothamBold
+    titleText.TextSize = 16
+    titleText.TextXAlignment = Enum.TextXAlignment.Left
+    titleText.ZIndex = 61
+    titleText.Parent = titleBar
+    
+    -- Кнопка закрытия
+    local closeBtn = Instance.new("TextButton")
+    closeBtn.Name = "CloseButton"
+    closeBtn.Size = UDim2.new(0, 40, 0, 40)
+    closeBtn.Position = UDim2.new(1, -45, 0, 2)
+    closeBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
+    closeBtn.Text = "✕"
+    closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    closeBtn.Font = Enum.Font.GothamBold
+    closeBtn.TextSize = 20
+    closeBtn.BorderSizePixel = 0
+    closeBtn.ZIndex = 62
+    closeBtn.Parent = titleBar
+    
+    local closeCorner = Instance.new("UICorner")
+    closeCorner.CornerRadius = UDim.new(0, 8)
+    closeCorner.Parent = closeBtn
+    
+    -- Содержимое окна
+    local content = Instance.new("Frame")
+    content.Name = "Content"
+    content.Size = UDim2.new(1, -20, 1, -55)
+    content.Position = UDim2.new(0, 10, 0, 50)
+    content.BackgroundTransparency = 1
+    content.ZIndex = 61
+    content.Parent = main
+    
+    -- Кнопка ESP (заглушка)
+    local espBtn = Instance.new("TextButton")
+    espBtn.Name = "ESPButton"
+    espBtn.Size = UDim2.new(1, 0, 0, 50)
+    espBtn.Position = UDim2.new(0, 0, 0, 10)
+    espBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+    espBtn.Text = "ESP: ВЫКЛ"
+    espBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    espBtn.Font = Enum.Font.GothamBold
+    espBtn.TextSize = 18
+    espBtn.BorderSizePixel = 0
+    espBtn.ZIndex = 62
+    espBtn.Parent = content
+    
+    local espCorner = Instance.new("UICorner")
+    espCorner.CornerRadius = UDim.new(0, 8)
+    espCorner.Parent = espBtn
+    
+    local espEnabled = false
+    espBtn.MouseButton1Click:Connect(function()
+        espEnabled = not espEnabled
+        if espEnabled then
+            espBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+            espBtn.Text = "ESP: ВКЛ"
+            Notify("ESP включен", 2)
+        else
+            espBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+            espBtn.Text = "ESP: ВЫКЛ"
+            Notify("ESP выключен", 2)
+        end
+    end)
+    
+    -- Кнопка Платформы
+    local platBtn = Instance.new("TextButton")
+    platBtn.Name = "PlatformButton"
+    platBtn.Size = UDim2.new(1, 0, 0, 50)
+    platBtn.Position = UDim2.new(0, 0, 0, 80)
+    platBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+    platBtn.Text = "ПЛАТФОРМА + ANTI-RESET: ВЫКЛ"
+    platBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    platBtn.Font = Enum.Font.GothamBold
+    platBtn.TextSize = 16
+    platBtn.
 
-local title = Instance.new("Frame")
-title.Size = UDim2.new(1,0,0,40)
-title.BackgroundColor3 = Color3.fromRGB(40,40,45)
-title.Parent = main
-local ttxt = Instance.new("TextLabel")
-ttxt.Size = UDim2.new(0.7,0,1,0)
-ttxt.Position = UDim2.new(0,15,0,0)
-ttxt.BackgroundTransparency = 1
-ttxt.Text = "GHOST CLIENT"
-ttxt.TextColor3 = Color3.fromRGB(255,255,255)
-ttxt.Font = Enum.Font.GothamBold
-ttxt.TextSize = 16
-ttxt.TextXAlignment = Enum.TextXAlignment.Left
-ttxt.Parent = title
-local close = Instance.new("TextButton")
-close.Size = UDim2.new(0,40,0,40)
-close.Position = UDim2.new(1,-40,0,0)
-close.BackgroundColor3 = Color3.fromRGB(60,60,65)
-close.Text = "✕"
-close.TextColor3 = Color3.fromRGB(255,255,255)
-close.Font = Enum.Font.GothamBold
-close.TextSize = 20
-close.Parent = title
-local closec = Instance.new("UICorner")
-closec.CornerRadius = UDim.new(0,8)
-closec.Parent = close
-
-local side = Instance.new("Frame")
-side.Size = UDim2.new(0,120,1,-40)
-side.Position = UDim2.new(0,0,0,40)
-side.BackgroundColor3 = Color3.fromRGB(25,25,30)
-side.Parent = main
-local area = Instance.new("Frame")
-area.Size = UDim2.new(1,-120,1,-40)
-area.Position = UDim2.new(0,120,0,40)
-area.BackgroundTransparency = 1
-area.Parent = main
-
-local tabs = {"MOVEMENT","VISUALS"}
-local tabBtns = {}
-local frames = {}
-
-for i,name in ipairs(tabs) do
- local btn = Instance.new("TextButton")
- btn.Size = UDim2.new(1,0,0,45)
- btn.Position = UDim2.new(0,0,0,(i-1)*45)
- btn.BackgroundColor3 = i==1 and Color3.fromRGB(80,80,90) or Color3.fromRGB(35,35,40)
- btn.Text = name
- btn.TextColor3 = Color3.fromRGB(255,255,255)
- btn.Font = Enum.Font.GothamBold
- btn.TextSize = 14
- btn.Parent = side
- tabBtns[name] = btn
- local f = Instance.new("Frame")
- f.Size = UDim2.new(1,-20,1,-20)
- f.Position = UDim2.new(0,10,0,10)
- f.BackgroundTransparency = 1
- f.Visible = i==1
- f.Parent = area
- frames[name] = f
+BorderSizePixel = 0
+    platBtn.ZIndex = 62
+    platBtn.Parent = content
+    
+    local platCorner = Instance.new("UICorner")
+    platCorner.CornerRadius = UDim.new(0, 8)
+    platCorner.Parent = platBtn
+    
+    platBtn.MouseButton1Click:Connect(function()
+        local result = TogglePlatform()
+        if result then
+            platBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+            platBtn.Text = "ПЛАТФОРМА + ANTI-RESET: ВКЛ"
+            Notify("Платформа + Anti-Reset включены", 2)
+        else
+            platBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+            platBtn.Text = "ПЛАТФОРМА + ANTI-RESET: ВЫКЛ"
+            Notify("Платформа + Anti-Reset выключены", 2)
+        end
+    end)
+    
+    -- Информация о платформе
+    local platInfo = Instance.new("TextLabel")
+    platInfo.Size = UDim2.new(1, 0, 0, 100)
+    platInfo.Position = UDim2.new(0, 0, 0, 150)
+    platInfo.BackgroundTransparency = 1
+    platInfo.Text = [[🟦 Платформа 10x1x10 | Движение: Y ±20 (3с цикл)
+🛡️ Anti-Reset: FallDamage, BreakJoints, Health
+⚡ Скорость ограничена: ≤ 32
+🔄 Авто-восстановление после респавна
+📱 Работает на мобильных эксплойтах]]
+    platInfo.TextColor3 = Color3.fromRGB(150, 200, 255)
+    platInfo.Font = Enum.Font.Gotham
+    platInfo.TextSize = 12
+    platInfo.TextXAlignment = Enum.TextXAlignment.Left
+    platInfo.TextYAlignment = Enum.TextYAlignment.Top
+    platInfo.ZIndex = 61
+    platInfo.Parent = content
+    
+    -- Подключение иконки и кнопки закрытия
+    icon.MouseButton1Click:Connect(function()
+        main.Visible = not main.Visible
+    end)
+    
+    closeBtn.MouseButton1Click:Connect(function()
+        main.Visible = false
+    end)
+    
+    -- Автоматическое открытие GUI
+    task.wait(0.3)
+    main.Visible = true
+    
+    print("[GhostClient] Главный GUI создан и открыт!")
+    
+    return main
 end
 
-local function Switch(t)
- for n,btn in pairs(tabBtns) do
-  btn.BackgroundColor3 = n==t and Color3.fromRGB(80,80,90) or Color3.fromRGB(35,35,40)
- end
- for n,f in pairs(frames) do
-  f.Visible = n==t
- end
-end
-
-for n,btn in pairs(tabBtns) do
- btn.MouseButton1Click:Connect(function() Switch(n) end)
-end
-
 -- ============================================
--- MOVEMENT: Speed + КНОПКА ПЛАТФОРМЫ
+-- ЗАПУСК ВСЕГО
 -- ============================================
-local mov = frames["MOVEMENT"]
-local speedEnabled = false
+print("[GhostClient] ========================================")
+print("[GhostClient] GHOST CLIENT v4.0 ЗАПУСК")
+print("[GhostClient] ========================================")
 
--- Speed кнопка
-local spdBtn = Instance.new("TextButton")
-spdBtn.Size = UDim2.new(0.9,0,0,45)
-spdBtn.Position = UDim2.new(0.05,0,0.05,0)
-spdBtn.BackgroundColor3 = Color3.fromRGB(200,50,50)
-spdBtn.Text = "SPEED 1.5x: ВЫКЛ"
-spdBtn.TextColor3 = Color3.fromRGB(255,255,255)
-spdBtn.Font = Enum.Font.GothamBold
-spdBtn.TextSize = 15
-spdBtn.Parent = mov
-local spdc = Instance.new("UICorner")
-spdc.CornerRadius = UDim.new(0,8)
-spdc.Parent = spdBtn
+-- Показываем анимацию загрузки
+ShowLoadingScreen()
 
-local spdStatus = Instance.new("TextLabel")
-spdStatus.Size = UDim2.new(0.9,0,0,22)
-spdStatus.Position = UDim2.new(0.05,0,0.2,0)
-spdStatus.BackgroundTransparency = 1
-spdStatus.Text = "Статус: ВЫКЛ"
-spdStatus.TextColor3 = Color3.fromRGB(180,180,180)
-spdStatus.Font = Enum.Font.Gotham
-spdStatus.TextSize = 12
-spdStatus.Parent = mov
+-- Создаём главный GUI
+CreateMainGUI()
 
-local function UpdateSpeed()
- local c = player.Character
- if not c then return end
- local h = c:FindFirstChild("Humanoid")
- if not h then return end
- h.WalkSpeed = speedEnabled and 24 or 16
-end
-
-player.CharacterAdded:Connect(function() task.wait(0.5) UpdateSpeed() end)
-
-spdBtn.MouseButton1Click:Connect(function()
- speedEnabled = not speedEnabled
- if speedEnabled then
-  spdBtn.BackgroundColor3 = Color3.fromRGB(0,150,0)
-
-spdBtn.Text = "SPEED 1.5x: ВКЛ"
-  spdStatus.Text = "Статус: ВКЛ"
-  Notify("Speed 1.5x включен",2)
- else
-  spdBtn.BackgroundColor3 = Color3.fromRGB(200,50,50)
-  spdBtn.Text = "SPEED 1.5x: ВЫКЛ"
-  spdStatus.Text = "Статус: ВЫКЛ"
-  Notify("Speed 1.5x выключен",2)
- end
- UpdateSpeed()
-end)
-
--- КНОПКА ПЛАТФОРМЫ (подключена к TogglePlatform)
-local platBtn = Instance.new("TextButton")
-platBtn.Size = UDim2.new(0.9,0,0,45)
-platBtn.Position = UDim2.new(0.05,0,0.35,0)
-platBtn.BackgroundColor3 = Color3.fromRGB(200,50,50)
-platBtn.Text = "ПЛАТФОРМА + ANTI-RESET: ВЫКЛ"
-platBtn.TextColor3 = Color3.fromRGB(255,255,255)
-platBtn.Font = Enum.Font.GothamBold
-platBtn.TextSize = 13
-platBtn.Parent = mov
-local platBtnCorner = Instance.new("UICorner")
-platBtnCorner.CornerRadius = UDim.new(0,8)
-platBtnCorner.Parent = platBtn
-
-local platStatus = Instance.new("TextLabel")
-platStatus.Size = UDim2.new(0.9,0,0,60)
-platStatus.Position = UDim2.new(0.05,0,0.5,0)
-platStatus.BackgroundTransparency = 1
-platStatus.Text = [[🟦 Платформа 10x1x10
-🔄 Движение: Y ±20 (цикл 3с)
-🛡️ Anti-Reset встроен
-🚫 Нет урона от падения
-⚡ Скорость ≤ 32]]
-platStatus.TextColor3 = Color3.fromRGB(150,220,255)
-platStatus.Font = Enum.Font.Gotham
-platStatus.TextSize = 11
-platStatus.TextXAlignment = Enum.TextXAlignment.Left
-platStatus.TextYAlignment = Enum.TextYAlignment.Top
-platStatus.Parent = mov
-
--- Подключение кнопки к функции TogglePlatform
-platBtn.MouseButton1Click:Connect(function()
- TogglePlatform()
- if platformActive then
-  platBtn.BackgroundColor3 = Color3.fromRGB(0,150,0)
-  platBtn.Text = "ПЛАТФОРМА + ANTI-RESET: ВКЛ"
-  Notify("Платформа + Anti-Reset включены", 2)
- else
-  platBtn.BackgroundColor3 = Color3.fromRGB(200,50,50)
-  platBtn.Text = "ПЛАТФОРМА + ANTI-RESET: ВЫКЛ"
-  Notify("Платформа + Anti-Reset выключены", 2)
- end
-end)
-
--- ============================================
--- VISUALS
--- ============================================
-local vis = frames["VISUALS"]
-local soon = Instance.new("TextLabel")
-soon.Size = UDim2.new(0.9,0,0,40)
-soon.Position = UDim2.new(0.05,0,0.05,0)
-soon.BackgroundTransparency = 1
-soon.Text = "Визуальные функции (скоро)"
-soon.TextColor3 = Color3.fromRGB(180,180,180)
-soon.Font = Enum.Font.Gotham
-soon.TextSize = 16
-soon.TextXAlignment = Enum.TextXAlignment.Left
-soon.Parent = vis
-
--- ============================================
--- ЗАПУСК
--- ============================================
-local open = false
-icon.MouseButton1Click:Connect(function()
- open = not open
- main.Visible = open
-end)
-close.MouseButton1Click:Connect(function()
- open = false
- main.Visible = false
-end)
-
-ShowSplash()
+-- Финальное уведомление
 task.wait(0.5)
-Notify("Ghost Client + Платформа загружены", 2)
-print("✅ Ghost Client + TogglePlatform готов!")
+Notify("👻 Ghost Client v4.0 загружен!", 4)
+
+print("[GhostClient] ✅ Всё готово!")
+print("[GhostClient] ========================================")
