@@ -1,6 +1,6 @@
 --[[
     GHOST CLIENT v7.1 - COMBINED
-    Платформа 5x5 | Подъём 10 студс/сек | ESP | Защита
+    Платформа 5x5 | Подъём 14 студс/сек | ESP | Защита
 ]]
 
 -- ============================================
@@ -24,21 +24,21 @@ Logger:Info("Ghost Client v7.1 Combined Starting...")
 -- ============================================
 -- СЕРВИСЫ
 -- ============================================
-local RunService  = game:GetService("RunService")
+local RunService   = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
-local Players     = game:GetService("Players")
-local Workspace   = game:GetService("Workspace")
+local Players      = game:GetService("Players")
+local Workspace    = game:GetService("Workspace")
 
 local player = Players.LocalPlayer
 if not player then Logger:Error("No LocalPlayer") return end
 Logger:Info("Player: " .. player.Name)
 
 -- ============================================
--- ПЛАТФОРМА (5x5, 10 студс/сек, прыжок)
+-- ПЛАТФОРМА (5x5, 14 студс/сек, авто-подъём)
 -- ============================================
 local PLATFORM_SIZE   = Vector3.new(5, 0.5, 5)
-local LIFT_SPEED      = 10   -- студс/сек
-local PLATFORM_OFFSET = -3   -- смещение под ноги
+local LIFT_SPEED      = 14    -- студс/сек
+local PLATFORM_OFFSET = -2.5  -- смещение под ноги
 
 local platformActive    = false
 local wasPlatformActive = false
@@ -51,9 +51,10 @@ local function createPlatform()
     local hrp = char:FindFirstChild("HumanoidRootPart")
     if not hrp then return false end
 
+    -- Спавним далеко снизу чтобы красиво поднялась
     local startPos = Vector3.new(
         hrp.Position.X,
-        hrp.Position.Y + PLATFORM_OFFSET,
+        hrp.Position.Y - 30,
         hrp.Position.Z
     )
 
@@ -76,7 +77,7 @@ local function createPlatform()
     highlight.Parent        = plat
 
     platformObject = plat
-    Logger:Info("Platform created at " .. tostring(startPos))
+    Logger:Info("Platform created, rising to feet...")
     return true
 end
 
@@ -91,14 +92,13 @@ local function startPlatformLoop()
         local rootPos = hrp.Position
         local floorY  = rootPos.Y + PLATFORM_OFFSET
         local platY   = platformObject.Position.Y
-
         local newY
 
-        -- Прыжок или платформа выше ног — мгновенно под ноги
-        if platY > floorY or (rootPos.Y - platY) > 8 then
+        if platY > floorY then
+            -- Платформа выше ног — мгновенно под ноги
             newY = floorY
         else
-            -- Поднимаем со скоростью 10 студс/сек
+            -- Всегда плавно догоняем ноги снизу
             newY = platY + LIFT_SPEED * dt
             if newY > floorY then newY = floorY end
         end
@@ -121,8 +121,8 @@ local function cleanupPlatform()
 end
 
 -- ============================================
--- ЗАЩИТА (АНТИ-РЕСЕТ)
 
+-- ЗАЩИТА (АНТИ-РЕСЕТ)
 -- ============================================
 local protectionConnections = {}
 local disableProtectionFunc = nil
@@ -260,10 +260,10 @@ local function makeLabel(pos, text, color, size)
         return l
     end
 
-    makeLabel(UDim2.new(0,0,0,0),  target.Name,                         Color3.fromRGB(255,255,255), 14)
+    makeLabel(UDim2.new(0,0,0,0),  target.Name,                              Color3.fromRGB(255,255,255), 14)
     local phraseLabel =
-    makeLabel(UDim2.new(0,0,0,22), getRandomPhrase(),                   Color3.fromRGB(255,50,150),  12)
-    makeLabel(UDim2.new(0,0,0,42), "GIVES: "..math.random(1,9999).." EXP", Color3.fromRGB(255,200,50), 12)
+    makeLabel(UDim2.new(0,0,0,22), getRandomPhrase(),                        Color3.fromRGB(255,50,150),  12)
+    makeLabel(UDim2.new(0,0,0,42), "GIVES: "..math.random(1,9999).." EXP",   Color3.fromRGB(255,200,50),  12)
 
     espUpdateConn = RunService.Heartbeat:Connect(function()
         if tick() % 5 < 0.05 then
@@ -360,7 +360,9 @@ closeBtn.TextSize         = 18
 closeBtn.BorderSizePixel  = 0
 closeBtn.ZIndex           = 112
 closeBtn.Parent           = titleBar
-Instance.new("UICorner",closeBtn).CornerRadius = UDim.new(0,8)
+Instance.new("UICorner",closeBtn).CornerRadius = UDim.
+
+new(0,8)
 
 -- Вкладки
 local tabButtons, tabFrames = {}, {}
@@ -418,23 +420,23 @@ platBtn.Parent           = movFrame
 Instance.new("UICorner",platBtn).CornerRadius = UDim.new(0,8)
 
 local platStatus = Instance.new("TextLabel")
-platStatus.Size                  = UDim2.new(0,220,0,55)
-platStatus.Position              = UDim2.new(0.5,-110,0,80)
+platStatus.Size                   = UDim2.new(0,220,0,55)
+platStatus.Position               = UDim2.new(0.5,-110,0,80)
 platStatus.BackgroundTransparency = 1
-platStatus.Text                  = "Платформа 5×5 под ногами\nПодъём: 10 студс/сек\nЗащита от урона: включится"
-platStatus.TextColor3            = Color3.fromRGB(180,180,180)
-platStatus.Font                  = Enum.Font.Gotham
-platStatus.TextSize              = 11
-platStatus.TextXAlignment        = Enum.TextXAlignment.Center
-platStatus.Parent                = movFrame
+platStatus.Text                   = "Платформа 5×5 под ногами\nПодъём: 14 студс/сек\nЗащита от урона: включится"
+platStatus.TextColor3             = Color3.fromRGB(180,180,180)
+platStatus.Font                   = Enum.Font.Gotham
+platStatus.TextSize               = 11
+platStatus.TextXAlignment         = Enum.TextXAlignment.Center
+platStatus.Parent                 = movFrame
 
 platBtn.MouseButton1Click:Connect(function()
     local on = togglePlatform()
     platBtn.BackgroundColor3 = on and Color3.fromRGB(0,150,0) or Color3.fromRGB(200,50,50)
     platBtn.Text             = on and "PLATFORM: ON" or "PLATFORM: OFF"
     platStatus.Text          = on
-        and "✅ Активна! Поднимает 10 ст/сек\nПрыгни — встанет под ноги\n🛡️ Защита от урона: ON"
-        or  "Платформа 5×5 под ногами\nПодъём: 10 студс/сек\nЗащита от урона: включится"
+        and "✅ Активна! Поднимает 14 ст/сек\nАвто-подъём без прыжка\n🛡️ Защита от урона: ON"
+        or  "Платформа 5×5 под ногами\nПодъём: 14 студс/сек\nЗащита от урона: включится"
     platStatus.TextColor3    = on and Color3.fromRGB(0,255,100) or Color3.fromRGB(180,180,180)
 end)
 
@@ -457,17 +459,17 @@ espBtn.Parent           = visFrame
 Instance.new("UICorner",espBtn).CornerRadius = UDim.new(0,8)
 
 local espStatus = Instance.new("TextLabel")
-espStatus.Size                  = UDim2.new(0,200,0,20)
-espStatus.Position              = UDim2.new(0.5,-100,0,90)
+espStatus.Size                   = UDim2.new(0,200,0,20)
+espStatus.Position               = UDim2.new(0.5,-100,0,90)
 espStatus.BackgroundTransparency = 1
 espStatus.
 
-Text                  = "Status: OFF"
-espStatus.TextColor3            = Color3.fromRGB(180,180,180)
-espStatus.Font                  = Enum.Font.Gotham
-espStatus.TextSize              = 12
-espStatus.TextXAlignment        = Enum.TextXAlignment.Center
-espStatus.Parent                = visFrame
+Text                   = "Status: OFF"
+espStatus.TextColor3             = Color3.fromRGB(180,180,180)
+espStatus.Font                   = Enum.Font.Gotham
+espStatus.TextSize               = 12
+espStatus.TextXAlignment         = Enum.TextXAlignment.Center
+espStatus.Parent                 = visFrame
 
 espBtn.MouseButton1Click:Connect(function()
     local on = toggleESP()
@@ -484,7 +486,7 @@ closeBtn.MouseButton1Click:Connect(function() main.Visible = false end)
 -- ============================================
 Logger:Info("========================================")
 Logger:Info("GHOST CLIENT v7.1 READY")
-Logger:Info("Platform: 5x5 | 10 studs/sec | jump fix")
+Logger:Info("Platform: 5x5 | 14 studs/sec | auto-rise")
 Logger:Info("Protection: anti fall damage + anti reset")
 Logger:Info("ESP: brainrot labels on players")
 Logger:Info("Нажми G чтобы открыть меню")
