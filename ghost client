@@ -1,11 +1,119 @@
--- // GHOST CLIENT v3.0 - FULL SCRIPT // --
--- // MOVEMENT + ANTI-RESET + PLATFORM PROTECTION + VISUALS // --
-
+-- // GHOST CLIENT + САМОДВИЖУЩАЯСЯ ПЛАТФОРМА С ЗАЩИТОЙ // --
 local player = game.Players.LocalPlayer
 local runService = game:GetService("RunService")
 local tweenService = game:GetService("TweenService")
 
--- ////// GUI ОСНОВА ////// --
+-- ============================================
+-- ЧАСТЬ 1: САМОДВИЖУЩАЯСЯ ПЛАТФОРМА + ЗАЩИТА
+-- ============================================
+local safePlatform = Instance.new("Part")
+safePlatform.Name = "SafeMovingPlatform"
+safePlatform.Size = Vector3.new(10, 1, 10)
+safePlatform.Position = Vector3.new(0, 10, 0)
+safePlatform.Anchored = true
+safePlatform.CanCollide = true
+safePlatform.Transparency = 0.4
+safePlatform.BrickColor = BrickColor.new("Cyan")
+safePlatform.Material = Enum.Material.Neon
+safePlatform.Parent = workspace
+
+local platformHighlight = Instance.new("SelectionBox")
+platformHighlight.Adornee = safePlatform
+platformHighlight.Color3 = Color3.fromRGB(0, 255, 255)
+platformHighlight.Transparency = 0.4
+platformHighlight.Parent = safePlatform
+
+-- Движение платформы
+local movingUp = true
+task.spawn(function()
+    while safePlatform and safePlatform.Parent do
+        local targetY = movingUp and 50 or 10
+        local distance = math.abs(targetY - safePlatform.Position.Y)
+        local speed = 5
+        local duration = distance / speed
+        local tween = tweenService:Create(safePlatform,
+            TweenInfo.new(duration, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut),
+            {Position = Vector3.new(safePlatform.Position.X, targetY, safePlatform.Position.Z)})
+        tween:Play()
+        tween.Completed:Wait()
+        movingUp = not movingUp
+    end
+end)
+
+-- Защита платформы (встроена прямо сюда, без отдельных функций)
+local onPlatform = false
+
+safePlatform.Touched:Connect(function(hit)
+    if hit.Parent and hit.Parent == player.Character then
+        onPlatform = true
+    end
+end)
+
+safePlatform.TouchEnded:Connect(function(hit)
+    if hit.Parent and hit.Parent == player.Character then
+        onPlatform = false
+    end
+end)
+
+-- Цикл защиты платформы + ограничение скорости
+runService.Heartbeat:Connect(function()
+    pcall(function()
+        local char = player.Character
+        if not char then
+            onPlatform = false
+            return
+        end
+        local hum = char:FindFirstChild("Humanoid")
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if not hum or not hrp then return end
+
+        -- Всегда ограничиваем скорость до 32
+        if hum.WalkSpeed > 32 then
+            hum.WalkSpeed = 32
+        end
+
+        -- Проверка расстояния до платформы
+        local distToPlatform = (hrp.Position - safePlatform.Position).Magnitude
+        local isAbovePlatform = hrp.Position.Y >= safePlatform.Position.Y and hrp.Position.Y <= safePlatform.Position.Y + 5
+
+        if (onPlatform or (distToPlatform < 6 and isAbovePlatform)) then
+            onPlatform = true
+            hum.FallDamage = false
+            hum.BreakJointsOnDeath = false
+
+            if hum.Health < 50 then
+                hum.Health = hum.MaxHealth
+            end
+
+            if distToPlatform > 8 then
+                hrp.CFrame = CFrame.new(safePlatform.Position + Vector3.new(0, 3, 0))
+            end
+        else
+            hum.FallDamage = false
+            local rayDown = workspace:Raycast(hrp.Position, Vector3.new(0, -500, 0))
+            if rayDown and (hrp.Position.Y - rayDown.Position.Y) > 50 then
+                hrp.CFrame = CFrame.new(safePlatform.Position + Vector3.new(0, 5, 0))
+            end
+        end
+    end)
+end)
+
+player.CharacterAdded:Connect(function(char)
+    onPlatform = false
+    task.wait(0.5)
+    pcall(function()
+        local hum = char:WaitForChild("Humanoid")
+        hum.FallDamage = false
+        hum.BreakJointsOnDeath = false
+        if hum.WalkSpeed > 32 then
+            hum.WalkSpeed = 32
+        end
+    end)
+end)
+
+-- ============================================
+-- ЧАСТЬ 2: GHOST CLIENT GUI
+-- ============================================
 local gui = Instance.new("ScreenGui")
 gui.Name = "GhostClient"
 gui.ResetOnSpawn = false
@@ -34,7 +142,7 @@ local function Notify(msg, d)
     t.TextXAlignment = Enum.TextXAlignment.Left
     t.Parent = f
     f.Position = UDim2.new(1,10,0,50)
-    local ts = game:GetService("TweenService")
+    ts = game:GetService("TweenService")
     ts:Create(f, TweenInfo.new(0.3), {Position = UDim2.new(1,-290,0,50)}):Play()
     task.wait(d)
     ts:Create(f, TweenInfo.new(0.3), {Position = UDim2.new(1,10,0,50)}):Play()
@@ -57,7 +165,7 @@ local function ShowSplash()
     txt.TextSize = 48
     txt.TextScaled = true
     txt.Parent = s
-    game:GetService("TweenService"):Create(s, TweenInfo.new(1), {BackgroundTransparency = 1}):Play()
+    tweenService:Create(s, TweenInfo.new(1), {BackgroundTransparency = 1}):Play()
     task.wait(1.5)
     s:Destroy()
 end
@@ -83,8 +191,8 @@ itxt.Parent = icon
 
 -- Главное окно
 local main = Instance.new("Frame")
-main.Size = UDim2.new(0,480,0,440)
-main.Position = UDim2.new(0.5,-240,0.5,-220)
+main.Size = UDim2.new(0,480,0,420)
+main.Position = UDim2.new(0.5,-240,0.5,-210)
 main.BackgroundColor3 = Color3.fromRGB(30,30,35)
 main.Visible = false
 main.Parent = gui
@@ -100,10 +208,10 @@ local ttxt = Instance.new("TextLabel")
 ttxt.Size = UDim2.new(0.7,0,1,0)
 ttxt.Position = UDim2.new(0,15,0,0)
 ttxt.BackgroundTransparency = 1
-ttxt.Text = "GHOST CLIENT v3.0"
+ttxt.Text = "GHOST CLIENT + PLATFORM"
 ttxt.TextColor3 = Color3.fromRGB(255,255,255)
 ttxt.Font = Enum.Font.GothamBold
-ttxt.TextSize = 16
+ttxt.TextSize = 15
 ttxt.TextXAlignment = Enum.TextXAlignment.Left
 ttxt.Parent = title
 local close = Instance.new("TextButton")
@@ -127,12 +235,10 @@ side.Parent = main
 local area = Instance.new("Frame")
 area.Size = UDim2.new(1,-130,1,-40)
 area.Position = UDim2.new(0,130,0,40)
-area.
-
-BackgroundTransparency = 1
+area.BackgroundTransparency = 1
 area.Parent = main
 
-local tabs = {"MOVEMENT","PLATFORM","ANTI-RESET","VISUALS"}
+local tabs = {"MOVEMENT","ANTI-RESET","VISUALS"}
 local tabBtns = {}
 local frames = {}
 
@@ -142,7 +248,9 @@ for i,name in ipairs(tabs) do
     btn.Position = UDim2.new(0,0,0,(i-1)*38)
     btn.BackgroundColor3 = i==1 and Color3.fromRGB(80,80,90) or Color3.fromRGB(35,35,40)
     btn.Text = name
-    btn.TextColor3 = Color3.fromRGB(255,255,255)
+    btn.TextColor3 = Color3.
+
+fromRGB(255,255,255)
     btn.Font = Enum.Font.GothamBold
     btn.TextSize = 13
     btn.Parent = side
@@ -169,7 +277,9 @@ for n,btn in pairs(tabBtns) do
     btn.MouseButton1Click:Connect(function() Switch(n) end)
 end
 
--- ////// MOVEMENT - SPEED ////// --
+-- ============================================
+-- MOVEMENT: Speed + Лифт-платформа
+-- ============================================
 local mov = frames["MOVEMENT"]
 local speedEnabled = false
 
@@ -222,324 +332,31 @@ spdBtn.MouseButton1Click:Connect(function()
     UpdateSpeed()
 end)
 
--- ////// MOVEMENT - ЛИФТ-ПЛАТФОРМА ////// --
-local platformActive = false
-local currPlatform = nil
-local platConn = nil
-local respConn = nil
-local bypassConn = nil
+-- Инфа о платформе в Movement
+local platInfoLabel = Instance.new("TextLabel")
+platInfoLabel.Size = UDim2.new(0.9,0,0,120)
+platInfoLabel.Position = UDim2.new(0.05,0,0.38,0)
+platInfoLabel.BackgroundTransparency = 1
+platInfoLabel.Text = [[🟦 САМОДВИЖУЩАЯСЯ ПЛАТФОРМА
 
-local function Bypass()
-    pcall(function()
-        local c = player.Character
-        if c and c:FindFirstChild("HumanoidRootPart") then
-            c.HumanoidRootPart:SetAttribute("LastCheckedY", -99999)
-        end
-    end)
-end
+✅ АВТО-ЗАЩИТА ОТ РЕСЕТА
+✅ НЕТ УРОНА ОТ ПАДЕНИЯ
+✅ СКОРОСТЬ ОГРАНИЧЕНА (32)
+✅ ТЕЛЕПОРТ ОБРАТНО ПРИ ПАДЕНИИ
+✅ ПЛАТФОРМА УЖЕ В ИГРЕ
 
-local function MakePlatform()
-    local c = player.Character
-    if not c then return nil end
-    local hrp = c:FindFirstChild("HumanoidRootPart")
-    if not hrp then return nil end
-    if currPlatform then pcall(function() currPlatform:Destroy() end) end
-    local p = Instance.new("Part")
-    p.Size = Vector3.new(3,0.2,3)
-    p.Position = hrp.Position - Vector3.new(0,2,0)
-    p.Anchored = true
-    p.CanCollide = true
-    p.Transparency = 0.4
-    p.BrickColor = BrickColor.new("Bright blue")
-    p.Material = Enum.Material.Neon
-    p.Parent = workspace
-    local sel = Instance.new("SelectionBox")
-    sel.Adornee = p
-    sel.Color3 = Color3.fromRGB(0,150,255)
-    sel.Transparency = 0.3
-    sel.Parent = p
-    return p
-end
+Платформа ездит: Y=10 ↔ Y=50
+Цвет: Cyan (неон)]]
+platInfoLabel.TextColor3 = Color3.fromRGB(150,220,255)
+platInfoLabel.Font = Enum.Font.Gotham
+platInfoLabel.TextSize = 10
+platInfoLabel.TextXAlignment = Enum.TextXAlignment.Left
+platInfoLabel.TextYAlignment = Enum.TextYAlignment.Top
+platInfoLabel.Parent = mov
 
-local function MoveLoop()
-    if not platformActive then return end
-    local c = player.Character
-    if not c then return end
-    local hrp = c:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-    Bypass()
-
-if not currPlatform or not currPlatform.Parent then
-        currPlatform = MakePlatform()
-        if not currPlatform then return end
-    end
-    currPlatform.Position = Vector3.new(hrp.Position.X, hrp.Position.Y - 2, hrp.Position.Z)
-    local hum = c:FindFirstChild("Humanoid")
-    if hum and hum.Health > 0 then
-        hrp.Position = hrp.Position + Vector3.new(0, 40 * task.wait(), 0)
-        currPlatform.Position = Vector3.new(hrp.Position.X, hrp.Position.Y - 2, hrp.Position.Z)
-    end
-end
-
-local function StartPlat()
-    if platformActive then return end
-    platformActive = true
-    platConn = game:GetService("RunService").RenderStepped:Connect(MoveLoop)
-    bypassConn = game:GetService("RunService").Heartbeat:Connect(Bypass)
-    respConn = player.CharacterAdded:Connect(function()
-        if platformActive then
-            task.wait(0.3)
-            if currPlatform then pcall(function() currPlatform:Destroy() end) end
-            currPlatform = MakePlatform()
-            Notify("Платформа восстановлена",1)
-        end
-    end)
-    Notify("Платформа + Bypass включены",2)
-end
-
-local function StopPlat()
-    platformActive = false
-    if platConn then platConn:Disconnect() end
-    if bypassConn then bypassConn:Disconnect() end
-    if respConn then respConn:Disconnect() end
-    if currPlatform then pcall(function() currPlatform:Destroy() end) end
-    Notify("Платформа выключена",2)
-end
-
-local platBtn = Instance.new("TextButton")
-platBtn.Size = UDim2.new(0.9,0,0,45)
-platBtn.Position = UDim2.new(0.05,0,0.38,0)
-platBtn.BackgroundColor3 = Color3.fromRGB(200,50,50)
-platBtn.Text = "ЛИФТ: ВЫКЛ"
-platBtn.TextColor3 = Color3.fromRGB(255,255,255)
-platBtn.Font = Enum.Font.GothamBold
-platBtn.TextSize = 15
-platBtn.Parent = mov
-local platc = Instance.new("UICorner")
-platc.CornerRadius = UDim.new(0,8)
-platc.Parent = platBtn
-
-local platStatus = Instance.new("TextLabel")
-platStatus.Size = UDim2.new(0.9,0,0,22)
-platStatus.Position = UDim2.new(0.05,0,0.53,0)
-platStatus.BackgroundTransparency = 1
-platStatus.Text = "Статус: ВЫКЛ"
-platStatus.TextColor3 = Color3.fromRGB(180,180,180)
-platStatus.Font = Enum.Font.Gotham
-platStatus.TextSize = 12
-platStatus.Parent = mov
-
-platBtn.MouseButton1Click:Connect(function()
-    if not platformActive then
-        StartPlat()
-        platBtn.BackgroundColor3 = Color3.fromRGB(0,150,0)
-        platBtn.Text = "ЛИФТ: ВКЛ"
-        platStatus.Text = "Статус: ВКЛ (Bypass)"
-    else
-        StopPlat()
-        platBtn.BackgroundColor3 = Color3.fromRGB(200,50,50)
-        platBtn.Text = "ЛИФТ: ВЫКЛ"
-        platStatus.Text = "Статус: ВЫКЛ"
-    end
-end)
-
--- ////// PLATFORM PROTECTION ////// --
-local plt = frames["PLATFORM"]
-local platformProtectionActive = false
-local platformProtectConnections = {}
-local lastSafePosition = nil
-
--- Функция проверки на платформе
-local function IsOnMovingPlatform()
-    local char = player.Character
-    if not char then return false end
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return false end
-    
-    -- Raycast вниз
-    local rayParams = RaycastParams.new()
-    rayParams.FilterType = Enum.RaycastFilterType.Exclude
-    rayParams.FilterDescendantsInstances = {char}
-    
-    local rayResult = workspace:Raycast(hrp.Position, Vector3.new(0, -5, 0), rayParams)
-    if rayResult then
-        local part = rayResult.Instance
-        local name = part.Name:lower()
-        if name:find("platform") or name:find("moving") or name:find("elevator") or name:find("lift") then
-            return true, part
-        end
-    end
-    
-    -- Проверка AssemblyLinearVelocity (движущиеся части)
-    local touchingParts = hrp:GetTouchingParts()
-    for _, part in ipairs(touchingParts) do
-        if part:IsA("BasePart") and part.AssemblyLinearVelocity.Magnitude > 0.1 then
-            return true, part
-        end
-    end
-    
-    return false, nil
-end
-
--- Защита на платформе
-local function EnablePlatformProtection()
-    if platformProtectionActive then return end
-    platformProtectionActive = true
-    
-    -- Основной цикл защиты
-    platformProtectConnections.
-
-mainLoop = runService.Heartbeat:Connect(function()
-        pcall(function()
-            local char = player.Character
-            if not char then return end
-            local hum = char:FindFirstChild("Humanoid")
-            if not hum then return end
-            local hrp = char:FindFirstChild("HumanoidRootPart")
-            if not hrp then return end
-            
-            -- Ограничение скорости
-            if hum.WalkSpeed > 32 then
-                hum.WalkSpeed = 32
-            end
-            
-            -- Проверка на платформе
-            local onPlat, platPart = IsOnMovingPlatform()
-            
-            if onPlat and platPart then
-                -- Сохраняем позицию
-                lastSafePosition = platPart.Position + Vector3.new(0, 5, 0)
-                
-                -- Защита здоровья
-                if hum.Health < hum.MaxHealth then
-                    hum.Health = hum.MaxHealth
-                end
-                
-                -- Отключаем урон от падения
-                hum.UseJumpPower = true
-                hum.JumpPower = 0
-                
-                -- Возврат на платформу если улетел
-                if (hrp.Position - lastSafePosition).Magnitude > 20 then
-                    hrp.CFrame = CFrame.new(lastSafePosition)
-                end
-            else
-                -- Не на платформе, но проверяем высоту
-                local rayDown = workspace:Raycast(hrp.Position, Vector3.new(0, -500, 0))
-                if rayDown then
-                    if (hrp.Position.Y - rayDown.Position.Y) > 100 then
-                        hum.Health = hum.MaxHealth
-                    end
-                end
-            end
-        end)
-    end)
-    
-    -- Перехват BreakJoints
-    platformProtectConnections.charAdded = player.CharacterAdded:Connect(function(char)
-        pcall(function()
-            local hum = char:WaitForChild("Humanoid", 5)
-            if hum then
-                hum.BreakJointsOnDeath = false
-                platformProtectConnections.breakProtect = hum:GetPropertyChangedSignal("BreakJointsOnDeath"):Connect(function()
-                    hum.BreakJointsOnDeath = false
-                end)
-            end
-        end)
-    end)
-    
-    Notify("Защита платформ активирована", 2)
-end
-
-local function DisablePlatformProtection()
-    platformProtectionActive = false
-    for _, conn in pairs(platformProtectConnections) do
-        pcall(function() conn:Disconnect() end)
-    end
-    platformProtectConnections = {}
-    lastSafePosition = nil
-    Notify("Защита платформ выключена", 2)
-end
-
--- UI для Platform Protection
-local pltTitle = Instance.new("TextLabel")
-pltTitle.Size = UDim2.new(0.9,0,0,30)
-pltTitle.Position = UDim2.new(0.05,0,0.02,0)
-pltTitle.BackgroundTransparency = 1
-pltTitle.Text = "ЗАЩИТА НА ПЛАТФОРМАХ"
-pltTitle.TextColor3 = Color3.fromRGB(255,255,255)
-pltTitle.Font = Enum.Font.GothamBold
-pltTitle.TextSize = 15
-pltTitle.TextXAlignment = Enum.TextXAlignment.Left
-pltTitle.Parent = plt
-
-local pltBtn = Instance.new("TextButton")
-pltBtn.Size = UDim2.new(0.9,0,0,45)
-pltBtn.Position = UDim2.new(0.05,0,0.12,0)
-pltBtn.BackgroundColor3 = Color3.fromRGB(200,50,50)
-pltBtn.Text = "ЗАЩИТА: ВЫКЛ"
-pltBtn.TextColor3 = Color3.fromRGB(255,255,255)
-pltBtn.Font = Enum.Font.GothamBold
-pltBtn.TextSize = 15
-pltBtn.Parent = plt
-local pltc = Instance.new("UICorner")
-pltc.CornerRadius = UDim.new(0,8)
-pltc.Parent = pltBtn
-
-local pltStatus = Instance.new("TextLabel")
-pltStatus.Size = UDim2.new(0.9,0,0,22)
-pltStatus.Position = UDim2.new(0.05,0,0.26,0)
-pltStatus.BackgroundTransparency = 1
-pltStatus.Text = "Статус: ВЫКЛ"
-pltStatus.TextColor3 = Color3.fromRGB(180,180,180)
-pltStatus.Font = Enum.Font.Gotham
-pltStatus.TextSize = 12
-pltStatus.Parent = plt
-
--- Список функций защиты платформ
-local pltInfo = Instance.new("TextLabel")
-pltInfo.Size = UDim2.new(0.9,0,0,200)
-pltInfo.Position = UDim2.new(0.05,0,0.35,0)
-pltInfo.BackgroundTransparency = 1
-pltInfo.Text = [[ЗАЩИТА ОТ ПЛАТФОРМ:
-
-✓ Блокировка смерти на платформе
-✓ Сохранение здоровья
-✓ Телепорт обратно при сбросе
-✓ Ограничение скорости (32)
-
-✓ Защита от падения >100м
-✓ Raycast-детектор платформ
-✓ Обнаружение движущихся частей
-
-Работает с:
-- Platform
-- MovingPlatform
-- Elevator
-- Lift
-- Любые AssemblyLinearVelocity]]
-pltInfo.TextColor3 = Color3.fromRGB(150,150,150)
-pltInfo.Font = Enum.Font.Gotham
-pltInfo.TextSize = 11
-pltInfo.TextXAlignment = Enum.TextXAlignment.Left
-pltInfo.TextYAlignment = Enum.TextYAlignment.Top
-pltInfo.Parent = plt
-
-pltBtn.MouseButton1Click:Connect(function()
-    if not platformProtectionActive then
-        EnablePlatformProtection()
-        pltBtn.BackgroundColor3 = Color3.fromRGB(0,150,0)
-        pltBtn.Text = "ЗАЩИТА: ВКЛ"
-        pltStatus.Text = "Статус: АКТИВНА"
-    else
-        DisablePlatformProtection()
-        pltBtn.BackgroundColor3 = Color3.fromRGB(200,50,50)
-        pltBtn.Text = "ЗАЩИТА: ВЫКЛ"
-        pltStatus.Text = "Статус: ВЫКЛ"
-    end
-end)
-
--- ////// ANTI-RESET ////// --
+-- ============================================
+-- ANTI-RESET
+-- ============================================
 local ar = frames["ANTI-RESET"]
 local antiResetActive = false
 local antiResetConnections = {}
@@ -591,12 +408,12 @@ arlc.CornerRadius = UDim.new(0,6)
 arlc.Parent = arList
 
 local protections = {
-    {name = "Humanoid Recovery", desc = "Восстановление при удалении"},
-    {name = "BreakJoints Block", desc = "Блокировка BreakJoints"},
-    {name = "Health Lock", desc = "Здоровье не ниже 1"},
-    {name = "Character Parent Lock", desc = "Защита от удаления из Workspace"},
-    {name = "Respawn Disabler", desc = "Блокировка LoadCharacter"},
-    {name = "Body Parts Protect", desc = "Защита частей тела"},
+    {name = "Humanoid Recovery", desc = "Восстановление"},
+    {name = "BreakJoints Block", desc = "Блокировка"},
+    {name = "Health Lock", desc = "Здоровье > 0"},
+    {name = "Character Lock", desc = "В Workspace"},
+    {name = "Respawn Block", desc = "Нет респавна"},
+    {name = "Parts Protect", desc = "Тело цело"},
 }
 
 local arItems = {}
@@ -634,9 +451,7 @@ for i, prot in ipairs(protections) do
     ds.Size = UDim2.new(0.45,0,1,0)
     ds.Position = UDim2.new(0.5,0,0,0)
     ds.BackgroundTransparency = 1
-    ds.Text = prot.
-
-desc
+    ds.Text = prot.desc
     ds.TextColor3 = Color3.fromRGB(150,150,150)
     ds.Font = Enum.Font.Gotham
     ds.TextSize = 10
@@ -688,7 +503,8 @@ local function EnableAntiReset()
             local hum = char:FindFirstChild("Humanoid")
             if hum and hum.Health < 1 then
                 hum.Health = 100
-                Notify("Anti-Reset: Health восстановлен", 1)
+
+Notify("Anti-Reset: Health восстановлен", 1)
             end
         end)
     end)
@@ -758,11 +574,11 @@ arBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- ////// VISUALS ////// --
+-- ============================================
+-- VISUALS
+-- ============================================
 local vis = frames["VISUALS"]
-local soon = Instance.
-
-new("TextLabel")
+local soon = Instance.new("TextLabel")
 soon.Size = UDim2.new(0.9,0,0,40)
 soon.Position = UDim2.new(0.05,0,0.05,0)
 soon.BackgroundTransparency = 1
@@ -773,7 +589,9 @@ soon.TextSize = 16
 soon.TextXAlignment = Enum.TextXAlignment.Left
 soon.Parent = vis
 
--- ////// ЗАПУСК ////// --
+-- ============================================
+-- ЗАПУСК
+-- ============================================
 local open = false
 icon.MouseButton1Click:Connect(function()
     open = not open
@@ -786,4 +604,5 @@ end)
 
 ShowSplash()
 task.wait(0.5)
-Notify("Ghost Client v3.0 загружен", 2)
+Notify("Ghost Client + Платформа загружены", 2)
+print("GHOST CLIENT + SAFE MOVING PLATFORM ACTIVATED")
