@@ -1,10 +1,10 @@
--- // GHOST CLIENT + САМОДВИЖУЩАЯСЯ ПЛАТФОРМА С ЗАЩИТОЙ // --
+-- // GHOST CLIENT + ПЛАТФОРМА С ANTI-RESET ЗАЩИТОЙ // --
 local player = game.Players.LocalPlayer
 local runService = game:GetService("RunService")
 local tweenService = game:GetService("TweenService")
 
 -- ============================================
--- ЧАСТЬ 1: САМОДВИЖУЩАЯСЯ ПЛАТФОРМА + ЗАЩИТА
+-- САМОДВИЖУЩАЯСЯ ПЛАТФОРМА + ВСТРОЕННЫЙ ANTI-RESET
 -- ============================================
 local safePlatform = Instance.new("Part")
 safePlatform.Name = "SafeMovingPlatform"
@@ -29,8 +29,7 @@ task.spawn(function()
     while safePlatform and safePlatform.Parent do
         local targetY = movingUp and 50 or 10
         local distance = math.abs(targetY - safePlatform.Position.Y)
-        local speed = 5
-        local duration = distance / speed
+        local duration = distance / 5
         local tween = tweenService:Create(safePlatform,
             TweenInfo.new(duration, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut),
             {Position = Vector3.new(safePlatform.Position.X, targetY, safePlatform.Position.Z)})
@@ -40,7 +39,7 @@ task.spawn(function()
     end
 end)
 
--- Защита платформы (встроена прямо сюда, без отдельных функций)
+-- ВСТРОЕННЫЙ ANTI-RESET (внутри кода платформы)
 local onPlatform = false
 
 safePlatform.Touched:Connect(function(hit)
@@ -55,7 +54,7 @@ safePlatform.TouchEnded:Connect(function(hit)
     end
 end)
 
--- Цикл защиты платформы + ограничение скорости
+-- Главный цикл: платформа + anti-reset + ограничение скорости
 runService.Heartbeat:Connect(function()
     pcall(function()
         local char = player.Character
@@ -63,33 +62,56 @@ runService.Heartbeat:Connect(function()
             onPlatform = false
             return
         end
+        
         local hum = char:FindFirstChild("Humanoid")
         local hrp = char:FindFirstChild("HumanoidRootPart")
         if not hum or not hrp then return end
-
-        -- Всегда ограничиваем скорость до 32
+        
+        -- Ограничение скорости всегда
         if hum.WalkSpeed > 32 then
             hum.WalkSpeed = 32
         end
-
-        -- Проверка расстояния до платформы
+        
+        -- Проверка на платформе
         local distToPlatform = (hrp.Position - safePlatform.Position).Magnitude
-        local isAbovePlatform = hrp.Position.Y >= safePlatform.Position.Y and hrp.Position.Y <= safePlatform.Position.Y + 5
-
-        if (onPlatform or (distToPlatform < 6 and isAbovePlatform)) then
+        local isAbovePlatform = hrp.Position.Y >= safePlatform.Position.Y 
+                                and hrp.Position.Y <= safePlatform.Position.Y + 5
+        
+        if onPlatform or (distToPlatform < 6 and isAbovePlatform) then
             onPlatform = true
-            hum.FallDamage = false
-            hum.BreakJointsOnDeath = false
-
-            if hum.Health < 50 then
+            
+            -- ANTI-RESET ЗАЩИТА ВНУТРИ ПЛАТФОРМЫ:
+            hum.FallDamage = false                    -- Нет урона от падения
+            hum.BreakJointsOnDeath = false            -- Нет смерти через BreakJoints
+            
+            if hum.Health < 100 then                  -- Здоровье всегда полное
                 hum.Health = hum.MaxHealth
             end
-
-            if distToPlatform > 8 then
+            
+            if distToPlatform > 8 then                -- Телепорт обратно если унесло
                 hrp.CFrame = CFrame.new(safePlatform.Position + Vector3.new(0, 3, 0))
             end
+            
+            -- Блокировка респавна через LoadCharacter
+            if player.LoadCharacter then
+                local oldLoad = player.LoadCharacter
+                player.LoadCharacter = function()
+                    return nil -- Блокируем респавн пока на платформе
+                end
+            end
+            
+            -- Защита частей тела от удаления
+            for _, part in ipairs(char:GetChildren()) do
+                if part:IsA("BasePart") and not part:IsDescendantOf(char) then
+                    part.Parent = char
+                end
+            end
+            
         else
+
+-- Не на платформе: только защита от падения
             hum.FallDamage = false
+            
             local rayDown = workspace:Raycast(hrp.Position, Vector3.new(0, -500, 0))
             if rayDown and (hrp.Position.Y - rayDown.Position.Y) > 50 then
                 hrp.CFrame = CFrame.new(safePlatform.Position + Vector3.new(0, 5, 0))
@@ -98,6 +120,7 @@ runService.Heartbeat:Connect(function()
     end)
 end)
 
+-- Переподключение защиты после респавна
 player.CharacterAdded:Connect(function(char)
     onPlatform = false
     task.wait(0.5)
@@ -108,11 +131,22 @@ player.CharacterAdded:Connect(function(char)
         if hum.WalkSpeed > 32 then
             hum.WalkSpeed = 32
         end
+        
+        -- Восстановление Humanoid если удалили
+        char.ChildRemoved:Connect(function(child)
+            if child:IsA("Humanoid") then
+                task.wait(0.1)
+                local newHum = Instance.new("Humanoid")
+                newHum.Parent = char
+                newHum.BreakJointsOnDeath = false
+                newHum.Health = 100
+            end
+        end)
     end)
 end)
 
 -- ============================================
--- ЧАСТЬ 2: GHOST CLIENT GUI
+-- GHOST CLIENT GUI
 -- ============================================
 local gui = Instance.new("ScreenGui")
 gui.Name = "GhostClient"
@@ -142,7 +176,7 @@ local function Notify(msg, d)
     t.TextXAlignment = Enum.TextXAlignment.Left
     t.Parent = f
     f.Position = UDim2.new(1,10,0,50)
-    ts = game:GetService("TweenService")
+    local ts = game:GetService("TweenService")
     ts:Create(f, TweenInfo.new(0.3), {Position = UDim2.new(1,-290,0,50)}):Play()
     task.wait(d)
     ts:Create(f, TweenInfo.new(0.3), {Position = UDim2.new(1,10,0,50)}):Play()
@@ -191,8 +225,8 @@ itxt.Parent = icon
 
 -- Главное окно
 local main = Instance.new("Frame")
-main.Size = UDim2.new(0,480,0,420)
-main.Position = UDim2.new(0.5,-240,0.5,-210)
+main.Size = UDim2.new(0,450,0,350)
+main.Position = UDim2.new(0.5,-225,0.5,-175)
 main.BackgroundColor3 = Color3.fromRGB(30,30,35)
 main.Visible = false
 main.Parent = gui
@@ -206,12 +240,13 @@ title.BackgroundColor3 = Color3.fromRGB(40,40,45)
 title.Parent = main
 local ttxt = Instance.new("TextLabel")
 ttxt.Size = UDim2.new(0.7,0,1,0)
+
 ttxt.Position = UDim2.new(0,15,0,0)
 ttxt.BackgroundTransparency = 1
-ttxt.Text = "GHOST CLIENT + PLATFORM"
+ttxt.Text = "GHOST CLIENT"
 ttxt.TextColor3 = Color3.fromRGB(255,255,255)
 ttxt.Font = Enum.Font.GothamBold
-ttxt.TextSize = 15
+ttxt.TextSize = 16
 ttxt.TextXAlignment = Enum.TextXAlignment.Left
 ttxt.Parent = title
 local close = Instance.new("TextButton")
@@ -228,31 +263,30 @@ closec.CornerRadius = UDim.new(0,8)
 closec.Parent = close
 
 local side = Instance.new("Frame")
-side.Size = UDim2.new(0,130,1,-40)
+side.Size = UDim2.new(0,120,1,-40)
 side.Position = UDim2.new(0,0,0,40)
 side.BackgroundColor3 = Color3.fromRGB(25,25,30)
 side.Parent = main
 local area = Instance.new("Frame")
-area.Size = UDim2.new(1,-130,1,-40)
-area.Position = UDim2.new(0,130,0,40)
+area.Size = UDim2.new(1,-120,1,-40)
+area.Position = UDim2.new(0,120,0,40)
 area.BackgroundTransparency = 1
 area.Parent = main
 
-local tabs = {"MOVEMENT","ANTI-RESET","VISUALS"}
+-- Только 2 вкладки: MOVEMENT и VISUALS (Anti-Reset встроен в платформу)
+local tabs = {"MOVEMENT","VISUALS"}
 local tabBtns = {}
 local frames = {}
 
 for i,name in ipairs(tabs) do
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1,0,0,38)
-    btn.Position = UDim2.new(0,0,0,(i-1)*38)
+    btn.Size = UDim2.new(1,0,0,45)
+    btn.Position = UDim2.new(0,0,0,(i-1)*45)
     btn.BackgroundColor3 = i==1 and Color3.fromRGB(80,80,90) or Color3.fromRGB(35,35,40)
     btn.Text = name
-    btn.TextColor3 = Color3.
-
-fromRGB(255,255,255)
+    btn.TextColor3 = Color3.fromRGB(255,255,255)
     btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 13
+    btn.TextSize = 14
     btn.Parent = side
     tabBtns[name] = btn
     local f = Instance.new("Frame")
@@ -278,11 +312,12 @@ for n,btn in pairs(tabBtns) do
 end
 
 -- ============================================
--- MOVEMENT: Speed + Лифт-платформа
+-- MOVEMENT: Speed + Платформа (Anti-Reset встроен)
 -- ============================================
 local mov = frames["MOVEMENT"]
 local speedEnabled = false
 
+-- Speed кнопка
 local spdBtn = Instance.new("TextButton")
 spdBtn.Size = UDim2.new(0.9,0,0,45)
 spdBtn.Position = UDim2.new(0.05,0,0.05,0)
@@ -332,247 +367,35 @@ spdBtn.MouseButton1Click:Connect(function()
     UpdateSpeed()
 end)
 
--- Инфа о платформе в Movement
+-- Информация о платформе и Anti-Reset защите
 local platInfoLabel = Instance.new("TextLabel")
-platInfoLabel.Size = UDim2.new(0.9,0,0,120)
-platInfoLabel.Position = UDim2.new(0.05,0,0.38,0)
+platInfoLabel.Size = UDim2.new(0.9,0,0,200)
+platInfoLabel.Position = UDim2.new(0.05,0,0.35,0)
 platInfoLabel.BackgroundTransparency = 1
-platInfoLabel.Text = [[🟦 САМОДВИЖУЩАЯСЯ ПЛАТФОРМА
 
-✅ АВТО-ЗАЩИТА ОТ РЕСЕТА
-✅ НЕТ УРОНА ОТ ПАДЕНИЯ
-✅ СКОРОСТЬ ОГРАНИЧЕНА (32)
-✅ ТЕЛЕПОРТ ОБРАТНО ПРИ ПАДЕНИИ
-✅ ПЛАТФОРМА УЖЕ В ИГРЕ
+platInfoLabel.Text = [[🟦 ПЛАТФОРМА + ANTI-RESET
 
-Платформа ездит: Y=10 ↔ Y=50
-Цвет: Cyan (неон)]]
+✅ Платформа: 10x1x10 Cyan
+✅ Движение: Y=10 ↔ Y=50
+✅ Скорость: 5 studs/sec
+
+🛡️ ВСТРОЕННАЯ ЗАЩИТА:
+✅ FallDamage = false
+✅ BreakJointsOnDeath = false
+✅ Health всегда 100
+✅ Телепорт обратно при падении
+✅ Блокировка LoadCharacter
+✅ Защита частей тела
+✅ WalkSpeed ограничен (32)
+
+⚠️ Anti-Reset работает всегда,
+пока платформа в игре!]]
 platInfoLabel.TextColor3 = Color3.fromRGB(150,220,255)
 platInfoLabel.Font = Enum.Font.Gotham
 platInfoLabel.TextSize = 10
 platInfoLabel.TextXAlignment = Enum.TextXAlignment.Left
 platInfoLabel.TextYAlignment = Enum.TextYAlignment.Top
 platInfoLabel.Parent = mov
-
--- ============================================
--- ANTI-RESET
--- ============================================
-local ar = frames["ANTI-RESET"]
-local antiResetActive = false
-local antiResetConnections = {}
-
-local arTitle = Instance.new("TextLabel")
-arTitle.Size = UDim2.new(0.9,0,0,30)
-arTitle.Position = UDim2.new(0.05,0,0.02,0)
-arTitle.BackgroundTransparency = 1
-arTitle.Text = "ANTI-RESET ЗАЩИТА"
-arTitle.TextColor3 = Color3.fromRGB(255,255,255)
-arTitle.Font = Enum.Font.GothamBold
-arTitle.TextSize = 16
-arTitle.TextXAlignment = Enum.TextXAlignment.Left
-arTitle.Parent = ar
-
-local arBtn = Instance.new("TextButton")
-arBtn.Size = UDim2.new(0.9,0,0,45)
-arBtn.Position = UDim2.new(0.05,0,0.12,0)
-arBtn.BackgroundColor3 = Color3.fromRGB(200,50,50)
-arBtn.Text = "ANTI-RESET: ВЫКЛ"
-arBtn.TextColor3 = Color3.fromRGB(255,255,255)
-arBtn.Font = Enum.Font.GothamBold
-arBtn.TextSize = 15
-arBtn.Parent = ar
-local arc = Instance.new("UICorner")
-arc.CornerRadius = UDim.new(0,8)
-arc.Parent = arBtn
-
-local arStatus = Instance.new("TextLabel")
-arStatus.Size = UDim2.new(0.9,0,0,22)
-arStatus.Position = UDim2.new(0.05,0,0.26,0)
-arStatus.BackgroundTransparency = 1
-arStatus.Text = "Статус: ВЫКЛ"
-arStatus.TextColor3 = Color3.fromRGB(180,180,180)
-arStatus.Font = Enum.Font.Gotham
-arStatus.TextSize = 12
-arStatus.Parent = ar
-
-local arList = Instance.new("ScrollingFrame")
-arList.Size = UDim2.new(0.9,0,0,200)
-arList.Position = UDim2.new(0.05,0,0.35,0)
-arList.BackgroundColor3 = Color3.fromRGB(40,40,45)
-arList.BorderSizePixel = 0
-arList.ScrollBarThickness = 6
-arList.CanvasSize = UDim2.new(0,0,0,300)
-arList.Parent = ar
-local arlc = Instance.new("UICorner")
-arlc.CornerRadius = UDim.new(0,6)
-arlc.Parent = arList
-
-local protections = {
-    {name = "Humanoid Recovery", desc = "Восстановление"},
-    {name = "BreakJoints Block", desc = "Блокировка"},
-    {name = "Health Lock", desc = "Здоровье > 0"},
-    {name = "Character Lock", desc = "В Workspace"},
-    {name = "Respawn Block", desc = "Нет респавна"},
-    {name = "Parts Protect", desc = "Тело цело"},
-}
-
-local arItems = {}
-for i, prot in ipairs(protections) do
-    local item = Instance.new("Frame")
-    item.Size = UDim2.new(1,-10,0,35)
-    item.Position = UDim2.new(0,5,0,(i-1)*40 + 5)
-    item.BackgroundColor3 = Color3.fromRGB(50,50,55)
-    item.Parent = arList
-    local itemc = Instance.new("UICorner")
-    itemc.CornerRadius = UDim.new(0,4)
-    itemc.Parent = item
-    
-    local dot = Instance.new("Frame")
-    dot.Size = UDim2.new(0,10,0,10)
-    dot.Position = UDim2.new(0,10,0.5,-5)
-    dot.BackgroundColor3 = Color3.fromRGB(200,50,50)
-    dot.Parent = item
-    local dotc = Instance.new("UICorner")
-    dotc.CornerRadius = UDim.new(1,0)
-    dotc.Parent = dot
-    
-    local nm = Instance.new("TextLabel")
-    nm.Size = UDim2.new(0.45,0,1,0)
-    nm.Position = UDim2.new(0,30,0,0)
-    nm.BackgroundTransparency = 1
-    nm.Text = prot.name
-    nm.TextColor3 = Color3.fromRGB(255,255,255)
-    nm.Font = Enum.Font.GothamBold
-    nm.TextSize = 11
-    nm.TextXAlignment = Enum.TextXAlignment.Left
-    nm.Parent = item
-    
-    local ds = Instance.new("TextLabel")
-    ds.Size = UDim2.new(0.45,0,1,0)
-    ds.Position = UDim2.new(0.5,0,0,0)
-    ds.BackgroundTransparency = 1
-    ds.Text = prot.desc
-    ds.TextColor3 = Color3.fromRGB(150,150,150)
-    ds.Font = Enum.Font.Gotham
-    ds.TextSize = 10
-    ds.TextXAlignment = Enum.TextXAlignment.Left
-    ds.Parent = item
-    
-    arItems[i] = dot
-end
-
-local function EnableAntiReset()
-    if antiResetActive then return end
-    antiResetActive = true
-    
-    for _, dot in ipairs(arItems) do
-        dot.BackgroundColor3 = Color3.fromRGB(0,200,0)
-    end
-    
-    antiResetConnections.humanoidCheck = runService.Heartbeat:Connect(function()
-        pcall(function()
-            local char = player.Character
-            if not char then return end
-            local hum = char:FindFirstChild("Humanoid")
-            if not hum or not hum.Parent then
-                local newHum = Instance.new("Humanoid")
-                newHum.Parent = char
-                newHum.BreakJointsOnDeath = false
-                newHum.Health = 100
-                Notify("Anti-Reset: Humanoid восстановлен", 1)
-            end
-        end)
-    end)
-    
-    antiResetConnections.breakJointsBlock = player.CharacterAdded:Connect(function(char)
-        pcall(function()
-            local hum = char:WaitForChild("Humanoid", 5)
-            if hum then
-                hum.BreakJointsOnDeath = false
-                antiResetConnections.breakJointsProtect = hum:GetPropertyChangedSignal("BreakJointsOnDeath"):Connect(function()
-                    hum.BreakJointsOnDeath = false
-                end)
-            end
-        end)
-    end)
-    
-    antiResetConnections.healthLock = runService.Heartbeat:Connect(function()
-        pcall(function()
-            local char = player.Character
-            if not char then return end
-            local hum = char:FindFirstChild("Humanoid")
-            if hum and hum.Health < 1 then
-                hum.Health = 100
-
-Notify("Anti-Reset: Health восстановлен", 1)
-            end
-        end)
-    end)
-    
-    antiResetConnections.charProtect = runService.Heartbeat:Connect(function()
-        pcall(function()
-            local char = player.Character
-            if char and not char:IsDescendantOf(workspace) then
-                char.Parent = workspace
-                Notify("Anti-Reset: Персонаж возвращён", 1)
-            end
-        end)
-    end)
-    
-    antiResetConnections.respawnBlock = player.CharacterAdded:Connect(function(char)
-        pcall(function()
-            local hum = char:WaitForChild("Humanoid", 5)
-            if hum then
-                hum.Died:Connect(function()
-                    task.wait(0.1)
-                    hum.Health = 100
-                    Notify("Anti-Reset: Смерть отменена", 1)
-                end)
-            end
-        end)
-    end)
-    
-    antiResetConnections.partProtect = runService.Heartbeat:Connect(function()
-        pcall(function()
-            local char = player.Character
-            if not char then return end
-            local hrp = char:FindFirstChild("HumanoidRootPart")
-            local head = char:FindFirstChild("Head")
-            if hrp and not hrp:IsDescendantOf(char) then hrp.Parent = char end
-            if head and not head:IsDescendantOf(char) then head.Parent = char end
-        end)
-    end)
-    
-    Notify("Anti-Reset активирован (6 защит)", 2)
-end
-
-local function DisableAntiReset()
-    antiResetActive = false
-    for _, conn in pairs(antiResetConnections) do
-        pcall(function() conn:Disconnect() end)
-    end
-    antiResetConnections = {}
-    
-    for _, dot in ipairs(arItems) do
-        dot.BackgroundColor3 = Color3.fromRGB(200,50,50)
-    end
-    
-    Notify("Anti-Reset выключен", 2)
-end
-
-arBtn.MouseButton1Click:Connect(function()
-    if not antiResetActive then
-        EnableAntiReset()
-        arBtn.BackgroundColor3 = Color3.fromRGB(0,150,0)
-        arBtn.Text = "ANTI-RESET: ВКЛ"
-        arStatus.Text = "Статус: АКТИВЕН (6 защит)"
-    else
-        DisableAntiReset()
-        arBtn.BackgroundColor3 = Color3.fromRGB(200,50,50)
-        arBtn.Text = "ANTI-RESET: ВЫКЛ"
-        arStatus.Text = "Статус: ВЫКЛ"
-    end
-end)
 
 -- ============================================
 -- VISUALS
@@ -604,5 +427,5 @@ end)
 
 ShowSplash()
 task.wait(0.5)
-Notify("Ghost Client + Платформа загружены", 2)
-print("GHOST CLIENT + SAFE MOVING PLATFORM ACTIVATED")
+Notify("Ghost Client + Платформа + Anti-Reset загружены", 2)
+print("✅ Ghost Client + Safe Platform + Anti-Reset ACTIVATED")
