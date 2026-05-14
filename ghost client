@@ -1,6 +1,6 @@
 --[[
     GHOST CLIENT v7.1 - COMBINED
-    Платформа 5x5 | Подъём 45 студс/сек | ESP | Защита | Загрузочный экран
+    Платформа 5x5 | Подъём 45 студс/сек | ESP | Защита | Адаптивный UI
 ]]
 
 -- ============================================
@@ -24,10 +24,12 @@ Logger:Info("Ghost Client v7.1 Starting...")
 -- ============================================
 -- СЕРВИСЫ
 -- ============================================
-local RunService   = game:GetService("RunService")
-local TweenService = game:GetService("TweenService")
-local Players      = game:GetService("Players")
-local Workspace    = game:GetService("Workspace")
+local RunService    = game:GetService("RunService")
+local TweenService  = game:GetService("TweenService")
+local Players       = game:GetService("Players")
+local Workspace     = game:GetService("Workspace")
+local GuiService    = game:GetService("GuiService")
+local UserInputService = game:GetService("UserInputService")
 
 local player = Players.LocalPlayer
 if not player then Logger:Error("No LocalPlayer") return end
@@ -36,15 +38,29 @@ local playerGui = player:WaitForChild("PlayerGui", 5)
 if not playerGui then Logger:Error("No PlayerGui") return end
 
 -- ============================================
+-- ОПРЕДЕЛЕНИЕ ПЛАТФОРМЫ (телефон / пк)
+-- ============================================
+local isMobile = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+
+Logger:Info("Platform: " .. (isMobile and "Mobile" or "PC"))
+
+-- Масштаб шрифта и элементов
+local FONT_SCALE   = isMobile and 1.35 or 1.0
+local WINDOW_W     = isMobile and 0.92  or 0.38   -- доля экрана
+local WINDOW_H     = isMobile and 0.52  or 0.44
+
+local function fs(size) return math.floor(size * FONT_SCALE) end
+
+-- ============================================
 -- ЗАГРУЗОЧНЫЙ ЭКРАН
 -- ============================================
 local loadGui = Instance.new("ScreenGui")
-loadGui.Name         = "GhostLoader"
-loadGui.ResetOnSpawn = false
-loadGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-loadGui.Parent       = playerGui
+loadGui.Name            = "GhostLoader"
+loadGui.ResetOnSpawn    = false
+loadGui.ZIndexBehavior  = Enum.ZIndexBehavior.Sibling
+loadGui.IgnoreGuiInset  = true
+loadGui.Parent          = playerGui
 
--- Чёрный фон
 local bg = Instance.new("Frame")
 bg.Size             = UDim2.new(1,0,1,0)
 bg.BackgroundColor3 = Color3.fromRGB(5,5,10)
@@ -55,69 +71,67 @@ bg.Parent           = loadGui
 -- Призраки по всему экрану
 local ghostChars = {"👻","👁️","💀","🕷️","🌑","👾","🕸️","☠️"}
 local ghostLabels = {}
+local ghostCount  = isMobile and 28 or 42
 
-for i = 1, 40 do
+for i = 1, ghostCount do
     local g = Instance.new("TextLabel")
-    g.Size                   = UDim2.new(0, 40, 0, 40)
-    g.Position               = UDim2.new(math.random(0,95)/100, 0, math.random(0,95)/100, 0)
+    g.Size                   = UDim2.new(0.06, 0, 0.06, 0)
+    g.Position               = UDim2.new(math.random(0,93)/100, 0, math.random(0,93)/100, 0)
     g.BackgroundTransparency = 1
     g.Text                   = ghostChars[math.random(1, #ghostChars)]
-    g.TextSize               = math.random(18, 36)
+    g.TextScaled             = true
     g.TextColor3             = Color3.fromRGB(
         math.random(100,255),
         math.random(0,80),
         math.random(100,255)
     )
-    g.Font                   = Enum.Font.GothamBold
-    g.ZIndex                 = 201
-    g.Parent                 = bg
+    g.Font   = Enum.Font.GothamBold
+    g.ZIndex = 201
+    g.Parent = bg
     table.insert(ghostLabels, g)
 end
 
--- Анимация призраков (плавающие)
 local ghostConns = {}
 for i, g in ipairs(ghostLabels) do
     local startX = g.Position.X.Scale
     local startY = g.Position.Y.Scale
-    local speed  = math.random(8, 20) / 10
-    local offset = math.random(0, 628) / 100
+    local speed  = math.random(8,20)/10
+    local offset = math.random(0,628)/100
     table.insert(ghostConns, RunService.Heartbeat:Connect(function()
         local t = tick() * speed + offset
         g.Position = UDim2.new(
-            startX + math.sin(t) * 0.02, 0,
-            startY + math.cos(t * 0.7) * 0.02, 0
+            startX + math.sin(t)*0.02, 0,
+            startY + math.cos(t*0.7)*0.02, 0
         )
-        g.TextTransparency = 0.3 + math.sin(t) * 0.3
+        g.TextTransparency = 0.3 + math.sin(t)*0.3
     end))
 end
 
--- Затемнение по центру для текста
+-- Центральный блок — адаптивный
 local centerBg = Instance.new("Frame")
-centerBg.Size             = UDim2.new(0, 500, 0, 200)
-centerBg.Position         = UDim2.new(0.5, -250, 0.5, -100)
-centerBg.BackgroundColor3 = Color3.fromRGB(5,5,10)
-centerBg.BackgroundTransparency = 0.3
-centerBg.BorderSizePixel  = 0
-centerBg.ZIndex           = 202
-centerBg.Parent           = bg
-Instance.new("UICorner", centerBg).CornerRadius = UDim.new(0, 16)
+centerBg.Size                   = UDim2.new(isMobile and 0.88 or 0.48, 0, isMobile and 0.38 or 0.32, 0)
+centerBg.
 
--- Текст GHOST CLIENT
+Position               = UDim2.new(0.5, 0, 0.5, 0)
+centerBg.AnchorPoint            = Vector2.new(0.5, 0.5)
+centerBg.BackgroundColor3       = Color3.fromRGB(5,5,10)
+centerBg.BackgroundTransparency = 0.25
+centerBg.BorderSizePixel        = 0
+centerBg.ZIndex                 = 202
+centerBg.Parent                 = bg
+Instance.new("UICorner", centerBg).CornerRadius = UDim.new(0,16)
+
 local titleLoad = Instance.new("TextLabel")
-titleLoad.Size               = UDim2.new(1,0,0,70)
-titleLoad.Position           = UDim2.new(0,0,0,20)
+titleLoad.Size               = UDim2.new(1,0,0.35,0)
+titleLoad.Position           = UDim2.new(0,0,0.05,0)
 titleLoad.BackgroundTransparency = 1
 titleLoad.Text               = "👻 GHOST CLIENT 👻"
 titleLoad.TextColor3         = Color3.fromRGB(200,100,255)
 titleLoad.Font               = Enum.Font.GothamBold
-titleLoad.
-
-TextSize           = 36
-titleLoad.TextXAlignment     = Enum.TextXAlignment.Center
+titleLoad.TextScaled         = true
 titleLoad.ZIndex             = 203
 titleLoad.Parent             = centerBg
 
--- Мигание заголовка
 local titleGlow = RunService.Heartbeat:Connect(function()
     titleLoad.TextColor3 = Color3.fromRGB(
         180 + math.floor(math.sin(tick()*3)*40),
@@ -126,52 +140,46 @@ local titleGlow = RunService.Heartbeat:Connect(function()
     )
 end)
 
--- Версия
 local versionLoad = Instance.new("TextLabel")
-versionLoad.Size               = UDim2.new(1,0,0,20)
-versionLoad.Position           = UDim2.new(0,0,0,88)
+versionLoad.Size               = UDim2.new(1,0,0.15,0)
+versionLoad.Position           = UDim2.new(0,0,0.42,0)
 versionLoad.BackgroundTransparency = 1
 versionLoad.Text               = "v7.1  |  Loading..."
 versionLoad.TextColor3         = Color3.fromRGB(160,160,200)
 versionLoad.Font               = Enum.Font.Gotham
-versionLoad.TextSize           = 14
-versionLoad.TextXAlignment     = Enum.TextXAlignment.Center
+versionLoad.TextScaled         = true
 versionLoad.ZIndex             = 203
 versionLoad.Parent             = centerBg
 
 -- Фон полоски
 local barBg = Instance.new("Frame")
-barBg.Size             = UDim2.new(0, 400, 0, 16)
-barBg.Position         = UDim2.new(0.5, -200, 0, 130)
+barBg.Size             = UDim2.new(0.85,0,0.1,0)
+barBg.Position         = UDim2.new(0.075,0,0.62,0)
 barBg.BackgroundColor3 = Color3.fromRGB(30,30,40)
 barBg.BorderSizePixel  = 0
 barBg.ZIndex           = 203
 barBg.Parent           = centerBg
-Instance.new("UICorner", barBg).CornerRadius = UDim.new(0,8)
+Instance.new("UICorner",barBg).CornerRadius = UDim.new(1,0)
 
--- Сама полоска
 local barFill = Instance.new("Frame")
 barFill.Size             = UDim2.new(0,0,1,0)
 barFill.BackgroundColor3 = Color3.fromRGB(160,50,255)
 barFill.BorderSizePixel  = 0
 barFill.ZIndex           = 204
 barFill.Parent           = barBg
-Instance.new("UICorner", barFill).CornerRadius = UDim.new(0,8)
+Instance.new("UICorner",barFill).CornerRadius = UDim.new(1,0)
 
--- Процент
 local percentLabel = Instance.new("TextLabel")
-percentLabel.Size               = UDim2.new(1,0,0,20)
-percentLabel.Position           = UDim2.new(0,0,0,152)
+percentLabel.Size               = UDim2.new(1,0,0.15,0)
+percentLabel.Position           = UDim2.new(0,0,0.78,0)
 percentLabel.BackgroundTransparency = 1
 percentLabel.Text               = "0%"
 percentLabel.TextColor3         = Color3.fromRGB(200,150,255)
 percentLabel.Font               = Enum.Font.GothamBold
-percentLabel.TextSize           = 13
-percentLabel.TextXAlignment     = Enum.TextXAlignment.Center
+percentLabel.TextScaled         = true
 percentLabel.ZIndex             = 203
 percentLabel.Parent             = centerBg
 
--- Сообщения загрузки
 local loadMessages = {
     "Инициализация призраков...",
     "Загрузка ESP модуля...",
@@ -186,7 +194,6 @@ local loadMessages = {
     "Готово!",
 }
 
--- Анимация загрузки 7.5 секунд
 local LOAD_TIME = 7.5
 local startTime = tick()
 
@@ -199,45 +206,36 @@ loadConn = RunService.Heartbeat:Connect(function()
     barFill.Size = UDim2.new(progress, 0, 1, 0)
     percentLabel.Text = percent .. "%"
 
-    local msgIndex = math.min(
-        math.floor(progress * #loadMessages) + 1,
-        #loadMessages
-    )
+    local msgIndex = math.min(math.floor(progress * #loadMessages) + 1, #loadMessages)
     versionLoad.Text = loadMessages[msgIndex]
 
-    -- Цвет полоски меняется по прогрессу
     barFill.BackgroundColor3 = Color3.fromRGB(
-        math.floor(100 + progress * 60),
-        math.floor(20  + progress * 30),
-        math.floor(220 + progress * 35)
+        math.floor(100 + progress*60),
+        math.floor(20  + progress*30),
+        math.floor(220 + progress*35)
     )
 end)
 
--- Ждём 7.5 секунд потом убираем экран
 task.delay(LOAD_TIME, function()
-    -- Останавливаем все анимации загрузки
     loadConn:Disconnect()
     titleGlow:Disconnect()
     for _, c in ipairs(ghostConns) do c:Disconnect() end
 
-    -- Плавное исчезновение
+    for _, child in ipairs(bg:GetDescendants()) do
+        pcall(function()
+            if child:IsA("TextLabel") or child:IsA("Frame") then
+                TweenService:Create(child, TweenInfo.new(0.6, Enum.EasingStyle.Quad), {
+
+BackgroundTransparency = 1,
+                    TextTransparency = 1
+                }):Play()
+            end
+        end)
+    end
+
     local fadeTween = TweenService:Create(bg, TweenInfo.new(0.6, Enum.EasingStyle.Quad), {
         BackgroundTransparency = 1
     })
-
-    -- Прозрачность всех элементов
-    for _, child in ipairs(bg:GetDescendants()) do
-        if child:IsA("TextLabel") or child:IsA("Frame") then
-            pcall(function()
-                TweenService:Create(child, TweenInfo.new(0.6, Enum.EasingStyle.Quad), {
-                    BackgroundTransparency = 1,
-                    TextTransparency = 1
-                }):Play()
-
-end)
-        end
-    end
-
     fadeTween:Play()
     fadeTween.Completed:Connect(function()
         loadGui:Destroy()
@@ -246,11 +244,11 @@ end)
 end)
 
 -- ============================================
--- ПЛАТФОРМА (5x5, 45 студс/сек, авто-подъём)
+-- ПЛАТФОРМА (5x5, 45 студс/сек)
 -- ============================================
 local PLATFORM_SIZE   = Vector3.new(5, 0.5, 5)
-local LIFT_SPEED      = 45    -- студс/сек
-local PLATFORM_OFFSET = -2.5  -- смещение под ноги
+local LIFT_SPEED      = 45
+local PLATFORM_OFFSET = -2.5
 
 local platformActive    = false
 local wasPlatformActive = false
@@ -263,11 +261,7 @@ local function createPlatform()
     local hrp = char:FindFirstChild("HumanoidRootPart")
     if not hrp then return false end
 
-    local startPos = Vector3.new(
-        hrp.Position.X,
-        hrp.Position.Y + PLATFORM_OFFSET,
-        hrp.Position.Z
-    )
+    local startPos = Vector3.new(hrp.Position.X, hrp.Position.Y + PLATFORM_OFFSET, hrp.Position.Z)
 
     local plat = Instance.new("Part")
     plat.Name         = "AutoPlatform"
@@ -282,7 +276,7 @@ local function createPlatform()
 
     local highlight = Instance.new("SelectionBox")
     highlight.Adornee       = plat
-    highlight.Color3        = Color3.fromRGB(120, 120, 120)
+    highlight.Color3        = Color3.fromRGB(120,120,120)
     highlight.Transparency  = 0.5
     highlight.LineThickness = 0.05
     highlight.Parent        = plat
@@ -318,25 +312,18 @@ end
 
 local function cleanupPlatform()
     platformActive = false
-    if platformHeartbeat then
-        platformHeartbeat:Disconnect()
-        platformHeartbeat = nil
-    end
-    if platformObject then
-        platformObject:Destroy()
-        platformObject = nil
-    end
+    if platformHeartbeat then platformHeartbeat:Disconnect(); platformHeartbeat = nil end
+    if platformObject    then platformObject:Destroy();       platformObject    = nil end
     Logger:Info("Platform removed")
 end
 
 -- ============================================
--- ЗАЩИТА (АНТИ-РЕСЕТ)
+-- ЗАЩИТА
 -- ============================================
 local protectionConnections = {}
 local disableProtectionFunc = nil
 
 local function enableProtection()
-    Logger:Info("Enabling protection...")
     local char = player.Character
     if not char then return end
     local hum = char:FindFirstChild("Humanoid")
@@ -348,10 +335,7 @@ local function enableProtection()
     local healthConn = RunService.Heartbeat:Connect(function()
         pcall(function()
             if hum and hum.Parent then
-                if hum.Health <= 0 then
-                    hum.Health = hum.MaxHealth
-                    Logger:Warn("Anti-reset triggered")
-                end
+                if hum.Health <= 0 then hum.Health = hum.MaxHealth end
                 if hum.FallDamage == true then hum.FallDamage = false end
                 if hum.BreakJointsOnDeath == true then hum.BreakJointsOnDeath = false end
             end
@@ -359,31 +343,24 @@ local function enableProtection()
     end)
 
     table.insert(protectionConnections, healthConn)
-    Logger:Info("Protection enabled")
 
     return function()
         pcall(function() healthConn:Disconnect() end)
-        Logger:Info("Protection disabled")
     end
 end
 
 -- ============================================
 -- ПЕРЕКЛЮЧЕНИЕ ПЛАТФОРМЫ
-
 -- ============================================
 local function togglePlatform()
     if platformActive then
         cleanupPlatform()
-        if disableProtectionFunc then
-            disableProtectionFunc()
-            disableProtectionFunc = nil
-        end
+
+if disableProtectionFunc then disableProtectionFunc(); disableProtectionFunc = nil end
         for _, c in ipairs(protectionConnections) do pcall(function() c:Disconnect() end) end
         protectionConnections = {}
-        Logger:Info("=== PLATFORM OFF ===")
         return false
     else
-        Logger:Info("=== PLATFORM ON ===")
         if createPlatform() then
             platformActive    = true
             wasPlatformActive = true
@@ -396,7 +373,6 @@ local function togglePlatform()
 end
 
 player.CharacterAdded:Connect(function()
-    Logger:Info("Respawn detected")
     if wasPlatformActive then
         cleanupPlatform()
         task.wait(0.5)
@@ -404,7 +380,6 @@ player.CharacterAdded:Connect(function()
             platformActive = true
             startPlatformLoop()
             disableProtectionFunc = enableProtection()
-            Logger:Info("Platform recreated after respawn")
         else
             platformActive    = false
             wasPlatformActive = false
@@ -427,9 +402,7 @@ local brainrotPhrases = {
     "BRAINROT DETECTED 🧠⚠️","SUSSY BAKA 😳📮","RIZZLY BEAR 🐻💋"
 }
 
-local function getRandomPhrase()
-    return brainrotPhrases[math.random(1, #brainrotPhrases)]
-end
+local function getRandomPhrase() return brainrotPhrases[math.random(1,#brainrotPhrases)] end
 
 local function clearESP()
     if espUpdateConn then espUpdateConn:Disconnect(); espUpdateConn = nil end
@@ -486,54 +459,53 @@ local function toggleESP()
         for _, plr in ipairs(Players:GetPlayers()) do
             if plr ~= player and plr.Character then
                 createESP(plr)
-                Logger:Info("ESP on: " .. plr.Name)
-
-return true
+                return true
             end
         end
         espActive = false
-        Logger:Warn("No ESP target found")
         return false
     else
         clearESP()
-        Logger:Info("ESP disabled")
         return false
     end
 end
 
 -- ============================================
--- ОСНОВНОЙ GUI (появится после загрузки)
+-- ОСНОВНОЙ GUI (адаптивный)
 -- ============================================
 local gui = Instance.new("ScreenGui")
-gui.Name         = "GhostClient_Main"
-gui.ResetOnSpawn = false
-gui.Enabled      = false  -- скрыт до конца загрузки
-gui.Parent       = playerGui
+gui.Name           = "GhostClient_Main"
+gui.ResetOnSpawn   = false
+gui.
 
--- Включаем GUI после загрузки
+IgnoreGuiInset = true
+gui.Enabled        = false
+gui.Parent         = playerGui
+
 task.delay(LOAD_TIME + 0.7, function()
     gui.Enabled = true
-    Logger:Info("Main GUI visible")
 end)
 
--- Иконка G
+-- Иконка G — адаптивная позиция
 local icon = Instance.new("TextButton")
-icon.Size             = UDim2.new(0,55,0,55)
-icon.Position         = UDim2.new(1,-70,0,10)
+icon.Size             = UDim2.new(0.1,0,0.07,0)
+icon.Position         = UDim2.new(0.88,0,0.03,0)
+icon.AnchorPoint      = Vector2.new(0.5,0)
 icon.BackgroundColor3 = Color3.fromRGB(20,20,40)
 icon.BorderSizePixel  = 0
 icon.Text             = "G"
 icon.TextColor3       = Color3.fromRGB(255,255,255)
 icon.Font             = Enum.Font.GothamBold
-icon.TextSize         = 26
+icon.TextScaled       = true
 icon.ZIndex           = 100
 icon.Parent           = gui
 Instance.new("UICorner",icon).CornerRadius = UDim.new(1,0)
 
--- Главное окно
+-- Главное окно — адаптивный размер
 local main = Instance.new("Frame")
-main.Size             = UDim2.new(0,450,0,340)
-main.Position         = UDim2.new(0.5,-225,0.5,-170)
+main.Size             = UDim2.new(WINDOW_W,0,WINDOW_H,0)
+main.Position         = UDim2.new(0.5,0,0.5,0)
+main.AnchorPoint      = Vector2.new(0.5,0.5)
 main.BackgroundColor3 = Color3.fromRGB(25,25,35)
 main.BorderSizePixel  = 0
 main.Visible          = false
@@ -543,7 +515,8 @@ Instance.new("UICorner",main).CornerRadius = UDim.new(0,12)
 
 -- Заголовок
 local titleBar = Instance.new("Frame")
-titleBar.Size             = UDim2.new(1,0,0,40)
+titleBar.Size             = UDim2.new(1,0,0,0)
+titleBar.Size             = UDim2.new(1,0,isMobile and 0.13 or 0.14,0)
 titleBar.BackgroundColor3 = Color3.fromRGB(35,35,45)
 titleBar.BorderSizePixel  = 0
 titleBar.ZIndex           = 111
@@ -552,24 +525,24 @@ Instance.new("UICorner",titleBar).CornerRadius = UDim.new(0,12)
 
 local titleText = Instance.new("TextLabel")
 titleText.Size               = UDim2.new(0.7,0,1,0)
-titleText.Position           = UDim2.new(0,15,0,0)
+titleText.Position           = UDim2.new(0.03,0,0,0)
 titleText.BackgroundTransparency = 1
 titleText.Text               = "👻 GHOST CLIENT v7.1"
 titleText.TextColor3         = Color3.fromRGB(255,255,255)
 titleText.Font               = Enum.Font.GothamBold
-titleText.TextSize           = 16
+titleText.TextScaled         = true
 titleText.TextXAlignment     = Enum.TextXAlignment.Left
 titleText.ZIndex             = 111
 titleText.Parent             = titleBar
 
 local closeBtn = Instance.new("TextButton")
-closeBtn.Size             = UDim2.new(0,35,0,35)
-closeBtn.Position         = UDim2.new(1,-40,0,2)
+closeBtn.Size             = UDim2.new(0.1,0,0.8,0)
+closeBtn.Position         = UDim2.new(0.89,0,0.1,0)
 closeBtn.BackgroundColor3 = Color3.fromRGB(60,60,70)
 closeBtn.Text             = "X"
 closeBtn.TextColor3       = Color3.fromRGB(255,255,255)
 closeBtn.Font             = Enum.Font.GothamBold
-closeBtn.TextSize         = 18
+closeBtn.TextScaled       = true
 closeBtn.BorderSizePixel  = 0
 closeBtn.ZIndex           = 112
 closeBtn.Parent           = titleBar
@@ -578,25 +551,28 @@ Instance.new("UICorner",closeBtn).CornerRadius = UDim.new(0,8)
 -- Вкладки
 local tabButtons, tabFrames = {}, {}
 local tabNames = {"MOVEMENT","VISUALS"}
+local tabBarH  = isMobile and 0.13 or 0.14
+local tabTopY  = isMobile and 0.14 or 0.15
 
 for i, name in ipairs(tabNames) do
     local btn = Instance.new("TextButton")
-    btn.Size             = UDim2.new(0,210,0,35)
-    btn.Position         = UDim2.new(0, 10+(i-1)*215, 0, 48)
+    btn.Size             = UDim2.new(0.48,0,tabBarH,0)
+    btn.Position         = UDim2.new(0.01+(i-1)*0.50,0,tabTopY,0)
     btn.BackgroundColor3 = i==1 and Color3.fromRGB(80,80,90) or Color3.fromRGB(40,40,50)
     btn.Text             = name
     btn.TextColor3       = Color3.fromRGB(255,255,255)
     btn.Font             = Enum.Font.GothamBold
-    btn.TextSize         = 14
+    btn.TextScaled       = true
     btn.BorderSizePixel  = 0
     btn.ZIndex           = 111
     btn.Parent           = main
     Instance.new("UICorner",btn).CornerRadius = UDim.new(0,6)
     tabButtons[name] = btn
 
+    local frameTopY = tabTopY + tabBarH + 0.01
     local frame = Instance.new("Frame")
-    frame.Size               = UDim2.new(1,-20,1,-95)
-    frame.Position           = UDim2.new(0,10,0,88)
+    frame.Size               = UDim2.new(0.96,0,1-frameTopY-0.02,0)
+    frame.Position           = UDim2.new(0.02,0,frameTopY,0)
     frame.BackgroundTransparency = 1
     frame.Visible            = i==1
     frame.ZIndex             = 111
@@ -605,39 +581,39 @@ for i, name in ipairs(tabNames) do
 end
 
 local function switchTab(name)
-    for n,btn   in pairs(tabButtons) do btn.BackgroundColor3 = n==name and Color3.fromRGB(80,80,90) or Color3.
-
-fromRGB(40,40,50) end
+    for n,btn   in pairs(tabButtons) do btn.BackgroundColor3 = n==name and Color3.fromRGB(80,80,90) or Color3.fromRGB(40,40,50) end
     for n,frame in pairs(tabFrames)  do frame.Visible = n==name end
 end
 for name,btn in pairs(tabButtons) do
-    btn.MouseButton1Click:Connect(function() switchTab(name) end)
+    btn.
+
+MouseButton1Click:Connect(function() switchTab(name) end)
 end
 
 -- MOVEMENT TAB
 local movFrame = tabFrames["MOVEMENT"]
 
 local platBtn = Instance.new("TextButton")
-platBtn.Size             = UDim2.new(0,220,0,50)
-platBtn.Position         = UDim2.new(0.5,-110,0,20)
+platBtn.Size             = UDim2.new(0.75,0,0.28,0)
+platBtn.Position         = UDim2.new(0.125,0,0.05,0)
 platBtn.BackgroundColor3 = Color3.fromRGB(200,50,50)
 platBtn.Text             = "PLATFORM: OFF"
 platBtn.TextColor3       = Color3.fromRGB(255,255,255)
 platBtn.Font             = Enum.Font.GothamBold
-platBtn.TextSize         = 16
+platBtn.TextScaled       = true
 platBtn.BorderSizePixel  = 0
 platBtn.ZIndex           = 112
 platBtn.Parent           = movFrame
 Instance.new("UICorner",platBtn).CornerRadius = UDim.new(0,8)
 
 local platStatus = Instance.new("TextLabel")
-platStatus.Size                   = UDim2.new(0,220,0,55)
-platStatus.Position               = UDim2.new(0.5,-110,0,80)
+platStatus.Size                   = UDim2.new(0.9,0,0.42,0)
+platStatus.Position               = UDim2.new(0.05,0,0.38,0)
 platStatus.BackgroundTransparency = 1
 platStatus.Text                   = "Платформа 5×5 под ногами\nПодъём: 45 студс/сек\nЗащита от урона: включится"
 platStatus.TextColor3             = Color3.fromRGB(180,180,180)
 platStatus.Font                   = Enum.Font.Gotham
-platStatus.TextSize               = 11
+platStatus.TextScaled             = true
 platStatus.TextXAlignment         = Enum.TextXAlignment.Center
 platStatus.Parent                 = movFrame
 
@@ -655,26 +631,26 @@ end)
 local visFrame = tabFrames["VISUALS"]
 
 local espBtn = Instance.new("TextButton")
-espBtn.Size             = UDim2.new(0,200,0,50)
-espBtn.Position         = UDim2.new(0.5,-100,0,30)
+espBtn.Size             = UDim2.new(0.75,0,0.28,0)
+espBtn.Position         = UDim2.new(0.125,0,0.05,0)
 espBtn.BackgroundColor3 = Color3.fromRGB(200,50,50)
 espBtn.Text             = "ESP: OFF"
 espBtn.TextColor3       = Color3.fromRGB(255,255,255)
 espBtn.Font             = Enum.Font.GothamBold
-espBtn.TextSize         = 16
+espBtn.TextScaled       = true
 espBtn.BorderSizePixel  = 0
 espBtn.ZIndex           = 112
 espBtn.Parent           = visFrame
 Instance.new("UICorner",espBtn).CornerRadius = UDim.new(0,8)
 
 local espStatus = Instance.new("TextLabel")
-espStatus.Size                   = UDim2.new(0,200,0,20)
-espStatus.Position               = UDim2.new(0.5,-100,0,90)
+espStatus.Size                   = UDim2.new(0.9,0,0.2,0)
+espStatus.Position               = UDim2.new(0.05,0,0.38,0)
 espStatus.BackgroundTransparency = 1
 espStatus.Text                   = "Status: OFF"
 espStatus.TextColor3             = Color3.fromRGB(180,180,180)
 espStatus.Font                   = Enum.Font.Gotham
-espStatus.TextSize               = 12
+espStatus.TextScaled             = true
 espStatus.TextXAlignment         = Enum.TextXAlignment.Center
 espStatus.Parent                 = visFrame
 
@@ -690,9 +666,7 @@ icon.MouseButton1Click:Connect(function() main.Visible = not main.Visible end)
 closeBtn.MouseButton1Click:Connect(function() main.Visible = false end)
 
 Logger:Info("========================================")
-Logger:Info("GHOST CLIENT v7.1 READY")
+Logger:Info("GHOST CLIENT v7.1 READY | " .. (isMobile and "MOBILE" or "PC"))
 Logger:Info("Platform: 5x5 | 45 studs/sec | instant spawn")
-Logger:Info("Protection: anti fall damage + anti reset")
-Logger:Info("ESP: brainrot labels on players")
 Logger:Info("Нажми G чтобы открыть меню")
 Logger:Info("========================================")
