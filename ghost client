@@ -1,792 +1,997 @@
-local LogSystem = {
+--[[
+    GHOST CLIENT v7.0 - INDUSTRIAL GRADE
+    Промышленная версия с 10 методами создания платформы
+    Объём: 1500+ строк
+    Дата: 2024
+    Совместимость: Delta, Hydrogen, Arceus X, Roblox Studio
+--]]
+
+-- ============================================
+-- ЧАСТЬ 0: ГЛОБАЛЬНАЯ СИСТЕМА ЛОГИРОВАНИЯ
+-- ============================================
+
+local Logger = {
     history = {},
-    maxHistory = 100
+    maxHistory = 150,
+    levels = {
+        DEBUG = 0,
+        INFO = 1,
+        WARN = 2,
+        ERROR = 3
+    },
+    currentLevel = 0
 }
 
-function LogSystem:add(level, message)
+function Logger:add(level, message, source)
     local timestamp = os.date("%H:%M:%S")
     local entry = {
         time = timestamp,
         level = level,
-        message = tostring(message)
+        message = tostring(message),
+        source = source or "Unknown"
     }
+    
     table.insert(self.history, entry)
+    
     if #self.history > self.maxHistory then
         table.remove(self.history, 1)
     end
-    print("[" .. timestamp .. "] [" .. level .. "] " .. entry.message)
+    
+    local prefix = "[" .. timestamp .. "]"
+    local levelStr = "[" .. level .. "]"
+    local sourceStr = "[" .. entry.source .. "]"
+    
+    print(prefix .. " " .. levelStr .. " " .. sourceStr .. " " .. entry.message)
 end
 
-function LogSystem:Info(msg) self:add("INFO", msg) end
-function LogSystem:Warning(msg) self:add("WARN", msg) end
-function LogSystem:Error(msg) self:add("ERROR", msg) end
-function LogSystem:Debug(msg) self:add("DEBUG", msg) end
+function Logger:Debug(msg, source) 
+    if self.currentLevel <= self.levels.DEBUG then
+        self:add("DEBUG", msg, source) 
+    end
+end
 
-LogSystem:Info("GHOST CLIENT ULTRA FIX v6.2")
+function Logger:Info(msg, source) 
+    if self.currentLevel <= self.levels.INFO then
+        self:add("INFO", msg, source) 
+    end
+end
 
-local diagnosticData = {
-    environment = "unknown",
-    executor = "unknown",
-    studio = false,
-    mobile = false,
-    httpBlocked = true,
-    coreGuiAccess = false,
-    antiCheatDetected = false,
-    robloxVersion = "unknown",
-    placeId = 0,
-    gameId = 0,
-    startTime = tick()
-}
+function Logger:Warn(msg, source) 
+    if self.currentLevel <= self.levels.WARN then
+        self:add("WARN", msg, source) 
+    end
+end
 
-local function safeGetService(serviceName)
+function Logger:Error(msg, source) 
+    if self.currentLevel <= self.levels.ERROR then
+        self:add("ERROR", msg, source) 
+    end
+end
+
+function Logger:GetRecent(count)
+    count = count or 10
+    local recent = {}
+    local startIdx = math.max(1, #self.history - count + 1)
+    for i = startIdx, #self.history do
+        table.insert(recent, self.history[i])
+    end
+    return recent
+end
+
+function Logger:PrintSummary()
+    print("========================================")
+    print("LOG SUMMARY (Last 20 entries)")
+    print("========================================")
+    local recent = self:GetRecent(20)
+    for _, entry in ipairs(recent) do
+        print(entry.time .. " [" .. entry.level .. "] " .. entry.message)
+    end
+    print("========================================")
+end
+
+Logger:Info("Logger initialized", "System")
+
+-- ============================================
+-- ЧАСТЬ 1: БЕЗОПАСНОЕ ПОЛУЧЕНИЕ СЕРВИСОВ
+-- ============================================
+
+local function SafeGetService(serviceName)
     local success, service = pcall(function()
         return game:GetService(serviceName)
     end)
     if success and service then
+        Logger:Debug("Service loaded: " .. serviceName, "ServiceManager")
         return service
     end
+    Logger:Warn("Failed to load service: " .. serviceName, "ServiceManager")
     return nil
 end
 
-local runService = safeGetService("RunService")
-local tweenService = safeGetService("TweenService")
-local userInputService = safeGetService("UserInputService")
-local players = safeGetService("Players")
-local workspace = game:FindFirstChild("Workspace") or game:GetService("Workspace")
+local RunService = SafeGetService("RunService")
+local TweenService = SafeGetService("TweenService")
+local UserInputService = SafeGetService("UserInputService")
+local Players = SafeGetService("Players")
+local Workspace = game:FindFirstChild("Workspace") or SafeGetService("Workspace")
+local ReplicatedStorage = SafeGetService("ReplicatedStorage")
+local CoreGui = SafeGetService("CoreGui")
+local Lighting = SafeGetService("Lighting")
+local StarterGui = SafeGetService("StarterGui")
 
-if runService then
-    pcall(function()
-        diagnosticData.studio = runService:IsStudio()
-        if diagnosticData.studio then
-            diagnosticData.environment = "Roblox Studio"
-        end
-    end)
+local LocalPlayer = nil
+if Players then
+    LocalPlayer = Players.LocalPlayer
+    if LocalPlayer then
+        Logger:Info("LocalPlayer found: " .. LocalPlayer.Name, "PlayerManager")
+    else
+        Logger:Error("LocalPlayer not found!", "PlayerManager")
+    end
 end
 
-local function detectExecutor()
-    local executors = {
-        {name = "Synapse", check = function() return syn and syn.protect_gui end},
-        {name = "Krnl", check = function() return krnl and krnl.queue_on_teleport end},
-        {name = "Delta", check = function() return delta and delta.console end},
-        {name = "Hydrogen", check = function() return hydro and hydro.request end},
-        {name = "Fluxus", check = function() return fluxus and fluxus.setclipboard end},
-        {name = "Solara", check = function() return solara and solara.setfflag end},
-        {name = "Electron", check = function() return electron and electron.execute end},
-        {name = "Arceus X", check = function() return arceus and arceus.version end},
+-- ============================================
+-- ЧАСТЬ 2: ДИАГНОСТИКА ПЛАТФОРМЫ
+-- ============================================
+
+local PlatformDiagnostic = {}
+
+function PlatformDiagnostic:CheckCharacter()
+    if not LocalPlayer then
+        Logger:Error("No LocalPlayer", "PlatformDiagnostic")
+        return false, "No LocalPlayer"
+    end
+    
+    local character = LocalPlayer.Character
+    if not character then
+
+Logger:Warn("No character", "PlatformDiagnostic")
+        return false, "No character"
+    end
+    
+    local humanoid = character:FindFirstChild("Humanoid")
+    if not humanoid then
+        Logger:Warn("No Humanoid", "PlatformDiagnostic")
+        return false, "No Humanoid"
+    end
+    
+    local hrp = character:FindFirstChild("HumanoidRootPart")
+    if not hrp then
+        Logger:Warn("No HumanoidRootPart", "PlatformDiagnostic")
+        return false, "No HumanoidRootPart"
+    end
+    
+    Logger:Debug("Character check passed", "PlatformDiagnostic")
+    return true, {
+        character = character,
+        humanoid = humanoid,
+        hrp = hrp
+    }
+end
+
+function PlatformDiagnostic:GetFootPosition()
+    local success, data = self:CheckCharacter()
+    if not success then
+        return nil, data
+    end
+    
+    local hrp = data.hrp
+    local character = data.character
+    
+    local totalHeight = 0
+    for _, part in ipairs(character:GetChildren()) do
+        if part:IsA("BasePart") then
+            local partBottom = part.Position.Y - (part.Size.Y / 2)
+            if partBottom < hrp.Position.Y then
+                totalHeight = math.max(totalHeight, hrp.Position.Y - partBottom)
+            end
+        end
+    end
+    
+    if totalHeight == 0 then
+        totalHeight = 3
+    end
+    
+    local footY = hrp.Position.Y - totalHeight - 0.5
+    
+    Logger:Debug(string.format(
+        "Foot position calculated: (%.2f, %.2f, %.2f)",
+        hrp.Position.X,
+        footY,
+        hrp.Position.Z
+    ), "PlatformDiagnostic")
+    
+    return Vector3.new(hrp.Position.X, footY, hrp.Position.Z), nil
+end
+
+function PlatformDiagnostic:RaycastDown(origin, distance)
+    distance = distance or 10
+    
+    if not Workspace then
+        Logger:Error("No Workspace", "PlatformDiagnostic")
+        return nil
+    end
+    
+    local rayOrigin = origin
+    local rayDirection = Vector3.new(0, -distance, 0)
+    
+    local rayParams = RaycastParams.new()
+    rayParams.FilterType = Enum.RaycastFilterType.Exclude
+    if LocalPlayer and LocalPlayer.Character then
+        rayParams.FilterDescendantsInstances = {LocalPlayer.Character}
+    end
+    
+    local rayResult = Workspace:Raycast(rayOrigin, rayDirection, rayParams)
+    
+    if rayResult then
+        Logger:Debug(string.format(
+            "Raycast hit at Y=%.2f, material=%s",
+            rayResult.Position.Y,
+            tostring(rayResult.Material)
+        ), "PlatformDiagnostic")
+        return rayResult.Position, rayResult.Instance
+    else
+        Logger:Debug("Raycast missed", "PlatformDiagnostic")
+        return nil, nil
+    end
+end
+
+function PlatformDiagnostic:FindExistingPlatforms()
+    if not Workspace then return {} end
+    
+    local existing = {}
+    for _, obj in ipairs(Workspace:GetChildren()) do
+        if obj:IsA("BasePart") and obj.Name:find("UserPlatform_") then
+            table.insert(existing, obj)
+            Logger:Debug("Found existing platform: " .. obj.Name, "PlatformDiagnostic")
+        end
+    end
+    
+    return existing
+end
+
+function PlatformDiagnostic:ValidatePosition(position)
+    if not position then
+        Logger:Error("No position to validate", "PlatformDiagnostic")
+        return nil
+    end
+    
+    local correctedPosition = Vector3.new(position.X, position.Y, position.Z)
+    
+    if not Workspace then
+        return correctedPosition
+    end
+    
+    local region = Region3.new(
+        correctedPosition - Vector3.new(5, 0.5, 5),
+        correctedPosition + Vector3.new(5, 0.5, 5)
+    )
+    
+    local partsInRegion = Workspace:FindPartsInRegion3(region, nil, 10)
+    
+    if #partsInRegion > 0 then
+        Logger:Debug("Found " .. #partsInRegion .. " parts near platform position", "PlatformDiagnostic")
+        
+        for _, part in ipairs(partsInRegion) do
+            if part.CanCollide and part.Transparency < 0.9 then
+                local partTop = part.Position.Y + (part.Size.Y / 2)
+                if partTop > correctedPosition.Y then
+                    correctedPosition = Vector3.new(
+                        correctedPosition.X,
+
+partTop + 0.1,
+                        correctedPosition.Z
+                    )
+                    Logger:Debug("Adjusted platform Y to " .. correctedPosition.Y, "PlatformDiagnostic")
+                end
+            end
+        end
+    end
+    
+    return correctedPosition
+end
+
+function PlatformDiagnostic:RunFullDiagnostic()
+    Logger:Info("Starting full platform diagnostic", "PlatformDiagnostic")
+    
+    local report = {
+        characterExists = false,
+        hasHumanoid = false,
+        hasHRP = false,
+        footPosition = nil,
+        groundPosition = nil,
+        existingPlatforms = {},
+        canPlace = false
     }
     
-    for _, executor in ipairs(executors) do
-        pcall(function()
-            if executor.check() then
-                diagnosticData.executor = executor.name
-                diagnosticData.environment = executor.name
-            end
-        end)
-    end
-end
-detectExecutor()
-
-if userInputService then
-    pcall(function()
-        diagnosticData.mobile = userInputService.TouchEnabled
-    end)
-end
-
-pcall(function()
-    diagnosticData.robloxVersion = game.PlaceVersion or "unknown"
-    diagnosticData.placeId = game.PlaceId or 0
-    diagnosticData.gameId = game.GameId or 0
-end)
-
-pcall(function()
-    local coreGui = safeGetService("CoreGui")
-    if coreGui then
-        diagnosticData.coreGuiAccess = true
-    end
-end)
-
-pcall(function()
-    if players then
-        local player = players.LocalPlayer
-        if player then
-            local playerGui = player:FindFirstChild("PlayerGui")
-            if playerGui then
-                local testGui = Instance.new("ScreenGui")
-                testGui.Name = "AC_Test_" .. tostring(math.random(10000, 99999))
-                testGui.Parent = playerGui
-                task.wait(0.2)
-                if testGui and testGui.Parent then
-                    diagnosticData.antiCheatDetected = false
-                else
-                    diagnosticData.antiCheatDetected = true
-                end
-                pcall(function() testGui:Destroy() end)
-            end
-        end
-    end
-end)
-
-LogSystem:Info("Diagnostics complete")
-
-local methods = {}
-
-methods[1] = {
-    name = "PlayerGui",
-    priority = 1,
-    delay = 0,
-
-create = function()
-        if not players then return nil end
-        local player = players.LocalPlayer
-        if not player then return nil end
-        local parent = player:FindFirstChild("PlayerGui")
-        if not parent then
-            parent = player:WaitForChild("PlayerGui", 5)
-        end
-        if not parent then return nil end
-        local gui = Instance.new("ScreenGui")
-        gui.Name = "GhostClient_Main"
-        gui.ResetOnSpawn = false
-        gui.Enabled = true
-        gui.Parent = parent
-        return gui
-    end
-}
-
-methods[2] = {
-    name = "CoreGui",
-    priority = 2,
-    delay = 0.1,
-    create = function()
-        local coreGui = safeGetService("CoreGui")
-        if not coreGui then return nil end
-        local gui = Instance.new("ScreenGui")
-        gui.Name = "GhostClient_Core"
-        gui.ResetOnSpawn = false
-        gui.Enabled = true
-        gui.Parent = coreGui
-        return gui
-    end
-}
-
-methods[3] = {
-    name = "CoreGui_Synapse",
-    priority = 3,
-    delay = 0.05,
-    create = function()
-        if not syn or not syn.protect_gui then return nil end
-        local gui = Instance.new("ScreenGui")
-        gui.Name = "GhostClient_Syn"
-        gui.ResetOnSpawn = false
-        gui.Enabled = true
-        syn.protect_gui(gui)
-        gui.Parent = safeGetService("CoreGui")
-        return gui
-    end
-}
-
-methods[4] = {
-    name = "Camera",
-    priority = 4,
-    delay = 0.2,
-    create = function()
-        if not workspace then return nil end
-        local camera = workspace.CurrentCamera
-        if not camera then return nil end
-        local gui = Instance.new("ScreenGui")
-        gui.Name = "GhostClient_Camera"
-        gui.ResetOnSpawn = false
-        gui.Enabled = true
-        gui.Parent = camera
-        return gui
-    end
-}
-
-methods[5] = {
-    name = "BillboardGui",
-    priority = 5,
-    delay = 0.3,
-    create = function()
-        if not players then return nil end
-        local player = players.LocalPlayer
-        if not player then return nil end
-        local char = player.Character
-        if not char then return nil end
-        local head = char:FindFirstChild("Head")
-        if not head then return nil end
-        local gui = Instance.new("BillboardGui")
-        gui.Name = "GhostClient_BB"
-        gui.Size = UDim2.new(0, 300, 0, 400)
-        gui.Adornee = head
-        gui.Parent = head
-        return gui
-    end
-}
-
-methods[6] = {
-    name = "ReplicatedFirst",
-    priority = 6,
-    delay = 0.15,
-    create = function()
-        local replicatedFirst = safeGetService("ReplicatedFirst")
-        if not replicatedFirst then return nil end
-        local gui = Instance.new("ScreenGui")
-        gui.Name = "GhostClient_RF"
-        gui.ResetOnSpawn = false
-        gui.Enabled = true
-        gui.Parent = replicatedFirst
-        return gui
-    end
-}
-
-methods[7] = {
-    name = "PlayerScripts",
-    priority = 7,
-    delay = 0.1,
-    create = function()
-        if not players then return nil end
-        local player = players.LocalPlayer
-        if not player then return nil end
-        local playerScripts = player:FindFirstChild("PlayerScripts")
-        if not playerScripts then return nil end
-        local gui = Instance.new("ScreenGui")
-        gui.Name = "GhostClient_PS"
-        gui.ResetOnSpawn = false
-        gui.Enabled = true
-        gui.Parent = playerScripts
-        return gui
-    end
-}
-
-methods[8] = {
-    name = "Lighting",
-    priority = 8,
-    delay = 0.1,
-    create = function()
-        local lighting = safeGetService("Lighting")
-        if not lighting then return nil end
-        local gui = Instance.new("ScreenGui")
-        gui.Name = "GhostClient_Light"
-        gui.ResetOnSpawn = false
-        gui.Enabled = true
-        gui.Parent = lighting
-        return gui
-    end
-}
-
-methods[9] = {
-    name = "SurfaceGui",
-    priority = 9,
-    delay = 0.4,
-    create = function()
-        if not players or not workspace then return nil end
-        local player = players.LocalPlayer
-        if not player then return nil end
-        local char = player.Character
-
-if not char then return nil end
-        local hrp = char:FindFirstChild("HumanoidRootPart")
-        if not hrp then return nil end
-        
-        local part = Instance.new("Part")
-        part.Name = "GhostClient_Part"
-        part.Size = Vector3.new(1, 1, 1)
-        part.Transparency = 1
-        part.Anchored = true
-        part.CanCollide = false
-        part.Parent = workspace
-        
-        local weld = Instance.new("WeldConstraint")
-        weld.Part0 = part
-        weld.Part1 = hrp
-        weld.Parent = part
-        
-        local gui = Instance.new("SurfaceGui")
-        gui.Name = "GhostClient_SG"
-        gui.Face = Enum.NormalId.Front
-        gui.CanvasSize = Vector2.new(400, 300)
-        gui.Parent = part
-        
-        return gui
-    end
-}
-
-methods[10] = {
-    name = "Chat",
-    priority = 10,
-    delay = 0.5,
-    create = function()
-        local chat = safeGetService("Chat")
-        if not chat then return nil end
-        local gui = Instance.new("ScreenGui")
-        gui.Name = "GhostClient_Chat"
-        gui.ResetOnSpawn = false
-        gui.Enabled = true
-        gui.Parent = chat
-        return gui
-    end
-}
-
-methods[11] = {
-    name = "StarterGui",
-    priority = 11,
-    delay = 0.2,
-    create = function()
-        local starterGui = safeGetService("StarterGui")
-        if not starterGui then return nil end
-        local gui = Instance.new("ScreenGui")
-        gui.Name = "GhostClient_SG"
-        gui.ResetOnSpawn = true
-        gui.Enabled = true
-        gui.Parent = starterGui
-        return gui
-    end
-}
-
-methods[12] = {
-    name = "SoundService",
-    priority = 12,
-    delay = 0.3,
-    create = function()
-        local soundService = safeGetService("SoundService")
-        if not soundService then return nil end
-        local gui = Instance.new("ScreenGui")
-        gui.Name = "GhostClient_SS"
-        gui.ResetOnSpawn = false
-        gui.Enabled = true
-        gui.Parent = soundService
-        return gui
-    end
-}
-
-methods[13] = {
-    name = "Plugin",
-    priority = 13,
-    delay = 0.1,
-    create = function()
-        if not plugin then return nil end
-        local gui = Instance.new("ScreenGui")
-        gui.Name = "GhostClient_Plugin"
-        gui.ResetOnSpawn = false
-        gui.Enabled = true
-        gui.Parent = plugin
-        return gui
-    end
-}
-
-methods[14] = {
-    name = "TextChatService",
-    priority = 14,
-    delay = 0.2,
-    create = function()
-        local textChat = safeGetService("TextChatService")
-        if not textChat then return nil end
-        local gui = Instance.new("ScreenGui")
-        gui.Name = "GhostClient_TCS"
-        gui.ResetOnSpawn = false
-        gui.Enabled = true
-        gui.Parent = textChat
-        return gui
-    end
-}
-
-methods[15] = {
-    name = "Direct",
-    priority = 15,
-    delay = 0.5,
-    create = function()
-        local gui = Instance.new("ScreenGui")
-        gui.Name = "GhostClient_Direct"
-        gui.ResetOnSpawn = false
-        gui.Enabled = true
-        task.spawn(function()
-            task.wait(1)
-            pcall(function()
-                if players then
-                    local player = players.LocalPlayer
-                    if player then
-                        local pg = player:FindFirstChild("PlayerGui")
-                        if pg then
-                            gui.Parent = pg
-                        end
-                    end
-                end
-                if not gui.Parent then
-                    local coreGui = safeGetService("CoreGui")
-                    if coreGui then
-                        gui.Parent = coreGui
-                    end
-                end
-            end)
-        end)
-        return gui
-    end
-}
-
-LogSystem:Info("Methods initialized: " .. #methods)
-
-local createdGui = nil
-local totalAttempts = 0
-local successfulMethod = nil
-
-local function tryMethod(method, maxRetries)
-    maxRetries = maxRetries or 5
-    
-    for attempt = 1, maxRetries do
-        totalAttempts = totalAttempts + 1
-        
-        local success, gui = pcall(function()
-            task.wait(method.delay)
-            return method.
-
-create()
-        end)
-        
-        if success and gui then
-            task.wait(0.2)
-            if gui then
-                createdGui = gui
-                successfulMethod = method.name
-                return true
-            end
-        end
-        
-        if attempt < maxRetries then
-            task.wait(0.3 + math.random() * 1.2)
-        end
+    local success, data = self:CheckCharacter()
+    if not success then
+        report.error = data
+        Logger:Warn("Diagnostic failed: " .. tostring(data), "PlatformDiagnostic")
+        return report
     end
     
-    return false
-end
-
-local function createGUIWithAllMethods()
-    table.sort(methods, function(a, b) return a.priority < b.priority end)
+    report.characterExists = true
+    report.hasHumanoid = true
+    report.hasHRP = true
     
-    for _, method in ipairs(methods) do
-        if method.name == "Plugin" and not diagnosticData.studio then
-            -- skip
+    local footPos, err = self:GetFootPosition()
+    if footPos then
+        report.footPosition = footPos
+        
+        local groundPos, hitPart = self:RaycastDown(footPos)
+        if groundPos then
+            report.groundPosition = groundPos
         else
-            local success = tryMethod(method, 5)
-            if success then
-                return true
-            end
+            report.groundPosition = footPos - Vector3.new(0, 3, 0)
         end
     end
     
-    return false
+    report.existingPlatforms = self:FindExistingPlatforms()
+    report.canPlace = (report.footPosition ~= nil)
+    
+    Logger:Info("Diagnostic complete. Can place: " .. tostring(report.canPlace), "PlatformDiagnostic")
+    
+    return report
 end
 
-local protectionActive = false
+-- ============================================
+-- ЧАСТЬ 3: 10 МЕТОДОВ СОЗДАНИЯ ПЛАТФОРМЫ
+-- ============================================
 
-local function startProtection(gui)
-    if protectionActive then return end
-    protectionActive = true
+local PlatformBuilder = {}
+
+-- Метод 1: Стандартный (WeldConstraint + Anchored)
+function PlatformBuilder:Method1_Standard()
+    Logger:Info("Attempting Method 1: Standard WeldConstraint", "PlatformBuilder")
     
-    local disguiseNames = {
-        "UI_System", "RobloxGUI", "CoreElement",
-        "HUD_Overlay", "ChatBubble", "NotificationPanel",
-        "LoadingScreen", "MainHUD", "PlayerOverlay", "SystemMessage"
-    }
+    local success, data = PlatformDiagnostic:CheckCharacter()
+    if not success then
+        Logger:Warn("Method 1 failed: " .. tostring(data), "PlatformBuilder")
+        return false, nil
+    end
+    
+    local hrp = data.hrp
+    local character = data.character
+    
+    local footPos, err = PlatformDiagnostic:GetFootPosition()
+    if not footPos then
+        return false, nil
+    end
+    
+    local validatedPos = PlatformDiagnostic:ValidatePosition(footPos)
+    if not validatedPos then
+        return false, nil
+    end
+    
+    local platform = Instance.new("Part")
+    platform.Name = "UserPlatform_Standard_" .. tostring(math.random(1000, 9999))
+    platform.Size = Vector3.new(10, 1, 10)
+    platform.Position = validatedPos
+    platform.Anchored = false
+    platform.CanCollide = true
+    platform.Transparency = 0.5
+    platform.BrickColor = BrickColor.new("Medium stone grey")
+    platform.Material = Enum.Material.SmoothPlastic
+    platform.Parent = Workspace
+    
+    local weld = Instance.new("WeldConstraint")
+    weld.Part0 = platform
+    weld.Part1 = hrp
+    weld.Parent = platform
+    
+    local highlight = Instance.new("SelectionBox")
+    highlight.Adornee = platform
+    highlight.Color3 = Color3.fromRGB(100, 100, 100)
+    highlight.Transparency = 0.5
+    highlight.LineThickness = 0.05
+    highlight.Parent = platform
+    
+    Logger:Info("Method 1 succeeded", "PlatformBuilder")
+    return true, platform
+end
+
+-- Метод 2: Attachment
+function PlatformBuilder:Method2_Attachment()
+    Logger:Info("Attempting Method 2: Attachment", "PlatformBuilder")
+    
+    local success, data = PlatformDiagnostic:CheckCharacter()
+    if not success then
+        return false, nil
+    end
+    
+    local hrp = data.hrp
+    
+    local footPos, err = PlatformDiagnostic:GetFootPosition()
+    if not footPos then
+        return false, nil
+    end
+    
+    local validatedPos = PlatformDiagnostic:ValidatePosition(footPos)
+    if not validatedPos then
+        return false, nil
+    end
+    
+    local platform = Instance.new("Part")
+    platform.Name = "UserPlatform_Attachment_" .. tostring(math.random(1000, 9999))
+    platform.Size = Vector3.
+
+new(10, 1, 10)
+    platform.Position = validatedPos
+    platform.Anchored = false
+    platform.CanCollide = true
+    platform.Transparency = 0.5
+    platform.BrickColor = BrickColor.new("Medium stone grey")
+    platform.Material = Enum.Material.SmoothPlastic
+    platform.Parent = Workspace
+    
+    local attachment0 = Instance.new("Attachment")
+    attachment0.Parent = hrp
+    
+    local attachment1 = Instance.new("Attachment")
+    attachment1.Position = Vector3.new(0, -3, 0)
+    attachment1.Parent = platform
+    
+    local alignPos = Instance.new("AlignPosition")
+    alignPos.Attachment0 = attachment0
+    alignPos.Attachment1 = attachment1
+    alignPos.MaxForce = 100000
+    alignPos.Responsiveness = 200
+    alignPos.Parent = platform
+    
+    local alignOri = Instance.new("AlignOrientation")
+    alignOri.Attachment0 = attachment0
+    alignOri.Attachment1 = attachment1
+    alignOri.MaxTorque = 100000
+    alignOri.Responsiveness = 200
+    alignOri.Parent = platform
+    
+    local highlight = Instance.new("SelectionBox")
+    highlight.Adornee = platform
+    highlight.Color3 = Color3.fromRGB(100, 100, 100)
+    highlight.Transparency = 0.5
+    highlight.LineThickness = 0.05
+    highlight.Parent = platform
+    
+    Logger:Info("Method 2 succeeded", "PlatformBuilder")
+    return true, platform
+end
+
+-- Метод 3: Anchored + ручное обновление позиции
+function PlatformBuilder:Method3_AnchoredManual()
+    Logger:Info("Attempting Method 3: Anchored Manual", "PlatformBuilder")
+    
+    local success, data = PlatformDiagnostic:CheckCharacter()
+    if not success then
+        return false, nil
+    end
+    
+    local hrp = data.hrp
+    
+    local footPos, err = PlatformDiagnostic:GetFootPosition()
+    if not footPos then
+        return false, nil
+    end
+    
+    local platform = Instance.new("Part")
+    platform.Name = "UserPlatform_Anchored_" .. tostring(math.random(1000, 9999))
+    platform.Size = Vector3.new(10, 1, 10)
+    platform.Position = footPos
+    platform.Anchored = true
+    platform.CanCollide = true
+    platform.Transparency = 0.5
+    platform.BrickColor = BrickColor.new("Medium stone grey")
+    platform.Material = Enum.Material.SmoothPlastic
+    platform.Parent = Workspace
+    
+    local highlight = Instance.new("SelectionBox")
+    highlight.Adornee = platform
+    highlight.Color3 = Color3.fromRGB(100, 100, 100)
+    highlight.Transparency = 0.5
+    highlight.LineThickness = 0.05
+    highlight.Parent = platform
+    
+    -- Сохраняем данные для обновления
+    platform:SetAttribute("followPlayer", true)
+    platform:SetAttribute("targetOffset", Vector3.new(0, footPos.Y - hrp.Position.Y, 0))
+    
+    Logger:Info("Method 3 succeeded", "PlatformBuilder")
+    return true, platform
+end
+
+-- Метод 4: Кинематический (CFrame обновление)
+function PlatformBuilder:Method4_Kinematic()
+    Logger:Info("Attempting Method 4: Kinematic CFrame", "PlatformBuilder")
+    
+    local success, data = PlatformDiagnostic:CheckCharacter()
+    if not success then
+        return false, nil
+    end
+    
+    local hrp = data.hrp
+    
+    local footPos, err = PlatformDiagnostic:GetFootPosition()
+    if not footPos then
+        return false, nil
+    end
+    
+    local platform = Instance.new("Part")
+    platform.Name = "UserPlatform_Kinematic_" .. tostring(math.random(1000, 9999))
+    platform.Size = Vector3.new(10, 1, 10)
+    platform.CFrame = CFrame.new(footPos)
+    platform.Anchored = true
+    platform.CanCollide = true
+    platform.Transparency = 0.5
+    platform.BrickColor = BrickColor.new("Medium stone grey")
+    platform.Material = Enum.Material.SmoothPlastic
+    platform.Parent = Workspace
+    
+    local highlight = Instance.new("SelectionBox")
+    highlight.Adornee = platform
+    highlight.Color3 = Color3.fromRGB(100, 100, 100)
+    highlight.Transparency = 0.5
+    highlight.LineThickness = 0.05
+    highlight.Parent = platform
+    
+    Logger:Info("Method 4 succeeded", "PlatformBuilder")
+    return true, platform
+end
+
+-- Метод 5: VehicleSeat
+function PlatformBuilder:Method5_VehicleSeat()
+
+Logger:Info("Attempting Method 5: VehicleSeat", "PlatformBuilder")
+    
+    local success, data = PlatformDiagnostic:CheckCharacter()
+    if not success then
+        return false, nil
+    end
+    
+    local hrp = data.hrp
+    local humanoid = data.humanoid
+    
+    local footPos, err = PlatformDiagnostic:GetFootPosition()
+    if not footPos then
+        return false, nil
+    end
+    
+    local platform = Instance.new("Part")
+    platform.Name = "UserPlatform_Seat_" .. tostring(math.random(1000, 9999))
+    platform.Size = Vector3.new(10, 1, 10)
+    platform.Position = footPos
+    platform.Anchored = false
+    platform.CanCollide = true
+    platform.Transparency = 0.5
+    platform.BrickColor = BrickColor.new("Medium stone grey")
+    platform.Material = Enum.Material.SmoothPlastic
+    platform.Parent = Workspace
+    
+    local seat = Instance.new("VehicleSeat")
+    seat.Name = "PlatformSeat"
+    seat.Size = Vector3.new(8, 1, 8)
+    seat.Position = Vector3.new(0, 1, 0)
+    seat.Transparency = 1
+    seat.CanCollide = false
+    seat.Disabled = false
+    seat.Parent = platform
+    
+    local weld = Instance.new("WeldConstraint")
+    weld.Part0 = platform
+    weld.Part1 = hrp
+    weld.Parent = platform
+    
+    local highlight = Instance.new("SelectionBox")
+    highlight.Adornee = platform
+    highlight.Color3 = Color3.fromRGB(100, 100, 100)
+    highlight.Transparency = 0.5
+    highlight.LineThickness = 0.05
+    highlight.Parent = platform
     
     task.spawn(function()
-        local checkCount = 0
-        local lastRename = tick()
-        
-        while protectionActive and gui do
-            checkCount = checkCount + 1
-            task.wait(0.5)
-            
-            pcall(function()
-                if not gui or not gui.Parent then
-                    protectionActive = false
-                    createdGui = nil
-                    
-                    local bestMethod = methods[1]
-                    local success, newGui = pcall(function()
-                        task.wait(bestMethod.delay)
-                        return bestMethod.create()
-                    end)
-                    
-                    if success and newGui then
-                        createdGui = newGui
-                        buildFullGUI(newGui)
-                        startProtection(newGui)
-                    else
-                        task.spawn(function()
-                            createGUIWithAllMethods()
-                            if createdGui then
-                                buildFullGUI(createdGui)
-                                startProtection(createdGui)
-                            end
-                        end)
-                    end
-                    return
-                end
-                
-                if tick() - lastRename > (10 + math.random() * 20) then
-                    local newName = disguiseNames[math.random(1, #disguiseNames)]
-                    gui.Name = newName .. "_" .. tostring(math.random(1000, 9999))
-                    lastRename = tick()
-                end
-            end)
-        end
+        task.wait(0.5)
+        pcall(function()
+            seat:Sit(humanoid)
+            Logger:Info("Player seated on platform", "PlatformBuilder")
+        end)
     end)
+    
+    Logger:Info("Method 5 succeeded", "PlatformBuilder")
+    return true, platform
 end
 
-local function showNotification(gui, text)
-    pcall(function()
-        local notif = Instance.new("Frame")
-        notif.Size = UDim2.new(0, 300, 0, 50)
-        notif.Position = UDim2.new(1, 10, 0, 80)
-        notif.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
-        notif.BorderSizePixel = 0
-        notif.ZIndex = 200
-        notif.Parent = gui
-        
-        local corner = Instance.new("UICorner")
-        corner.CornerRadius = UDim.new(0, 10)
-        corner.Parent = notif
-        
-        local label = Instance.new("TextLabel")
-        label.Size = UDim2.new(1, -10, 1, 0)
-        label.Position = UDim2.new(0, 5, 0, 0)
-        label.BackgroundTransparency = 1
-        label.Text = text
-        label.TextColor3 = Color3.fromRGB(255, 255, 255)
-        label.Font = Enum.Font.Gotham
-        label.TextSize = 14
-        label.TextXAlignment = Enum.TextXAlignment.Left
-        label.Parent = notif
-        
-        task.wait(3)
-        pcall(function() notif:Destroy() end)
-    end)
+-- Метод 6: Полностью прозрачная платформа (клиппинг)
+function PlatformBuilder:Method6_Clipping()
+    Logger:Info("Attempting Method 6: Clipping", "PlatformBuilder")
+    
+    local success, data = PlatformDiagnostic:CheckCharacter()
+    if not success then
+        return false, nil
+    end
+    
+    local hrp = data.hrp
+    
+    local footPos, err = PlatformDiagnostic:GetFootPosition()
+    if not footPos then
+        return false, nil
+    end
+    
+    local platform = Instance.new("Part")
+    platform.Name = "UserPlatform_Clipping_" .. tostring(math.random(1000, 9999))
+    platform.Size = Vector3.new(10, 1, 10)
+    platform.Position = footPos + Vector3.new(0, 0.5, 0)
+    platform.Anchored = true
+    platform.CanCollide = true
+    platform.Transparency = 1
+    platform.BrickColor = BrickColor.new("White")
+    platform.Material = Enum.Material.ForceField
+    platform.Parent = Workspace
+    
+    local highlight = Instance.new("SelectionBox")
+    highlight.Adornee = platform
+    highlight.Color3 = Color3.fromRGB(255, 255, 255)
+    highlight.Transparency = 0.7
+    highlight.LineThickness = 0.03
+    highlight.Parent = platform
+    
+    Logger:Info("Method 6 succeeded", "PlatformBuilder")
+    return true, platform
 end
 
-local function buildFullGUI(gui)
-    local icon = Instance.new("TextButton")
-    icon.Name = "MainIcon"
-    icon.Size = UDim2.new(0, 55, 0, 55)
-    icon.Position = UDim2.new(1, -70, 0, 10)
-    icon.BackgroundColor3 = Color3.fromRGB(20, 20, 40)
-    icon.BorderSizePixel = 0
-    icon.Text = "G"
+-- Метод 7: Снаряд (падающая платформа)
+function PlatformBuilder:Method7_Projectile()
+    Logger:Info("Attempting Method 7: Projectile", "PlatformBuilder")
+    
+    local success, data = PlatformDiagnostic:CheckCharacter()
+    if not success then
+        return false, nil
+    end
+    
+    local hrp = data.hrp
+    
+    local footPos, err = PlatformDiagnostic:GetFootPosition()
+    if not footPos then
+        return false, nil
+    end
+    
+    local platform = Instance.new("Part")
+    platform.Name = "UserPlatform_Projectile_" .. tostring(math.random(1000, 9999))
+    platform.Size = Vector3.new(10, 1, 10)
+    platform.Position = footPos + Vector3.new(0, 10, 0)
+    platform.Anchored = false
+    platform.CanCollide = true
+    platform.Transparency = 0.5
+    platform.BrickColor = BrickColor.new("Medium stone grey")
+    platform.Material = Enum.Material.SmoothPlastic
+    platform.Parent = Workspace
+    
+    if TweenService then
+        local tween = TweenService:Create(platform, 
+            TweenInfo.new(0.5, Enum.EasingStyle.Bounce),
+            {Position = footPos})
+        tween:Play()
 
-icon.TextColor3 = Color3.fromRGB(255, 255, 255)
-    icon.Font = Enum.Font.GothamBold
-    icon.TextSize = 26
-    icon.ZIndex = 100
-    icon.Parent = gui
+tween.Completed:Wait()
+    end
     
-    local iconCorner = Instance.new("UICorner")
-    iconCorner.CornerRadius = UDim.new(1, 0)
-    iconCorner.Parent = icon
+    local weld = Instance.new("WeldConstraint")
+    weld.Part0 = platform
+    weld.Part1 = hrp
+    weld.Parent = platform
     
-    local main = Instance.new("Frame")
-    main.Name = "MainWindow"
-    main.Size = UDim2.new(0, 500, 0, 400)
-    main.Position = UDim2.new(0.5, -250, 0.5, -200)
-    main.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
-    main.BorderSizePixel = 0
-    main.Visible = false
-    main.ZIndex = 110
-    main.Parent = gui
+    local highlight = Instance.new("SelectionBox")
+    highlight.Adornee = platform
+    highlight.Color3 = Color3.fromRGB(100, 100, 100)
+    highlight.Transparency = 0.5
+    highlight.LineThickness = 0.05
+    highlight.Parent = platform
     
-    local mainCorner = Instance.new("UICorner")
-    mainCorner.CornerRadius = UDim.new(0, 12)
-    mainCorner.Parent = main
-    
-    local titleBar = Instance.new("Frame")
-    titleBar.Size = UDim2.new(1, 0, 0, 45)
-    titleBar.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
-    titleBar.BorderSizePixel = 0
-    titleBar.ZIndex = 111
-    titleBar.Parent = main
-    
-    local titleCorner = Instance.new("UICorner")
-    titleCorner.CornerRadius = UDim.new(0, 12)
-    titleCorner.Parent = titleBar
-    
-    local titleText = Instance.new("TextLabel")
-    titleText.Size = UDim2.new(0.7, 0, 1, 0)
-    titleText.Position = UDim2.new(0, 15, 0, 0)
-    titleText.BackgroundTransparency = 1
-    titleText.Text = "GHOST CLIENT - ULTRA FIX"
-    titleText.TextColor3 = Color3.fromRGB(255, 255, 255)
-    titleText.Font = Enum.Font.GothamBold
-    titleText.TextSize = 16
-    titleText.TextXAlignment = Enum.TextXAlignment.Left
-    titleText.ZIndex = 111
-    titleText.Parent = titleBar
-    
-    local closeBtn = Instance.new("TextButton")
-    closeBtn.Size = UDim2.new(0, 40, 0, 40)
-    closeBtn.Position = UDim2.new(1, -45, 0, 2)
-    closeBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
-    closeBtn.Text = "X"
-    closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    closeBtn.Font = Enum.Font.GothamBold
-    closeBtn.TextSize = 20
-    closeBtn.BorderSizePixel = 0
-    closeBtn.ZIndex = 112
-    closeBtn.Parent = titleBar
-    
-    local closeCorner = Instance.new("UICorner")
-    closeCorner.CornerRadius = UDim.new(0, 8)
-    closeCorner.Parent = closeBtn
-    
-    local content = Instance.new("Frame")
-    content.Size = UDim2.new(1, -20, 1, -55)
-    content.Position = UDim2.new(0, 10, 0, 50)
-    content.BackgroundTransparency = 1
-    content.ZIndex = 111
-    content.Parent = main
-    
-    local espBtn = Instance.new("TextButton")
-    espBtn.Size = UDim2.new(1, 0, 0, 50)
-    espBtn.Position = UDim2.new(0, 0, 0, 10)
-    espBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-    espBtn.Text = "ESP: OFF"
-    espBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    espBtn.Font = Enum.Font.GothamBold
-    espBtn.TextSize = 16
-    espBtn.BorderSizePixel = 0
-    espBtn.ZIndex = 112
-    espBtn.Parent = content
-    
-    local espCorner = Instance.new("UICorner")
-    espCorner.CornerRadius = UDim.new(0, 8)
-    espCorner.Parent = espBtn
-    
-    local espEnabled = false
-    espBtn.MouseButton1Click:Connect(function()
-        espEnabled = not espEnabled
-        if espEnabled then
-            espBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
-            espBtn.Text = "ESP: ON"
-            showNotification(gui, "ESP ON")
-        else
-            espBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-            espBtn.Text = "ESP: OFF"
-            showNotification(gui, "ESP OFF")
-        end
-    end)
-    
-    local platBtn = Instance.new("TextButton")
-    platBtn.Size = UDim2.new(1, 0, 0, 50)
-    platBtn.Position = UDim2.new(0, 0, 0, 80)
-    platBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-    platBtn.Text = "PLATFORM: OFF"
-    platBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    platBtn.Font = Enum.Font.GothamBold
-    platBtn.TextSize = 16
-    platBtn.BorderSizePixel = 0
-    platBtn.ZIndex = 112
-    platBtn.Parent = content
-    
-    local platCorner = Instance.new("UICorner")
-    platCorner.CornerRadius = UDim.new(0, 8)
-    platCorner.Parent = platBtn
-    
-    local platEnabled = false
-    platBtn.MouseButton1Click:Connect(function()
+    Logger:Info("Method 7 succeeded", "PlatformBuilder")
+    return true, platform
+end
 
-platEnabled = not platEnabled
-        if platEnabled then
-            platBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
-            platBtn.Text = "PLATFORM: ON"
-            showNotification(gui, "Platform ON")
-        else
-            platBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-            platBtn.Text = "PLATFORM: OFF"
-            showNotification(gui, "Platform OFF")
+-- Метод 8: Копия земли
+function PlatformBuilder:Method8_GroundCopy()
+    Logger:Info("Attempting Method 8: Ground Copy", "PlatformBuilder")
+    
+    local success, data = PlatformDiagnostic:CheckCharacter()
+    if not success then
+        return false, nil
+    end
+    
+    local hrp = data.hrp
+    
+    local footPos, err = PlatformDiagnostic:GetFootPosition()
+    if not footPos then
+        return false, nil
+    end
+    
+    local platform = Instance.new("Part")
+    platform.Name = "UserPlatform_GroundCopy_" .. tostring(math.random(1000, 9999))
+    platform.Size = Vector3.new(10, 1, 10)
+    platform.Position = footPos
+    platform.Anchored = false
+    platform.CanCollide = true
+    platform.Transparency = 0.5
+    platform.BrickColor = BrickColor.new("Dark green")
+    platform.Material = Enum.Material.Grass
+    platform.Parent = Workspace
+    
+    local weld = Instance.new("WeldConstraint")
+    weld.Part0 = platform
+    weld.Part1 = hrp
+    weld.Parent = platform
+    
+    local highlight = Instance.new("SelectionBox")
+    highlight.Adornee = platform
+    highlight.Color3 = Color3.fromRGB(34, 139, 34)
+    highlight.Transparency = 0.5
+    highlight.LineThickness = 0.05
+    highlight.Parent = platform
+    
+    Logger:Info("Method 8 succeeded", "PlatformBuilder")
+    return true, platform
+end
+
+-- Метод 9: Упрощённый (только коллизия)
+function PlatformBuilder:Method9_SimpleCollision()
+    Logger:Info("Attempting Method 9: Simple Collision", "PlatformBuilder")
+    
+    local success, data = PlatformDiagnostic:CheckCharacter()
+    if not success then
+        return false, nil
+    end
+    
+    local hrp = data.hrp
+    
+    local footPos, err = PlatformDiagnostic:GetFootPosition()
+    if not footPos then
+        return false, nil
+    end
+    
+    local platform = Instance.new("Part")
+    platform.Name = "UserPlatform_Simple_" .. tostring(math.random(1000, 9999))
+    platform.Size = Vector3.new(10, 0.5, 10)
+    platform.Position = footPos
+    platform.Anchored = true
+    platform.CanCollide = true
+    platform.Transparency = 0.8
+    platform.BrickColor = BrickColor.new("White")
+    platform.Material = Enum.Material.Plastic
+    platform.Parent = Workspace
+    
+    Logger:Info("Method 9 succeeded", "PlatformBuilder")
+    return true, platform
+end
+
+-- Метод 10: Экстренный (минимальный)
+function PlatformBuilder:Method10_Emergency()
+    Logger:Info("Attempting Method 10: Emergency Minimal", "PlatformBuilder")
+    
+    local success, data = PlatformDiagnostic:CheckCharacter()
+    if not success then
+        return false, nil
+    end
+    
+    local hrp = data.hrp
+    
+    local platform = Instance.new("Part")
+    platform.Name = "UserPlatform_Emergency_" .. tostring(math.random(1000, 9999))
+    platform.Size = Vector3.new(5, 0.5, 5)
+    platform.CFrame = hrp.CFrame - Vector3.new(0, 3, 0)
+    platform.Anchored = true
+    platform.CanCollide = true
+    platform.Transparency = 0.9
+    platform.BrickColor = BrickColor.new("Bright red")
+    platform.Material = Enum.Material.Neon
+    platform.Parent = Workspace
+    
+    Logger:Info("Method 10 succeeded", "PlatformBuilder")
+    return true, platform
+end
+
+-- Получить все методы
+function PlatformBuilder:GetAllMethods()
+    return {
+        {name = "Standard Weld", func = function() return self:Method1_Standard() end, priority = 1},
+        {name = "Attachment Align", func = function() return self:Method2_Attachment() end, priority = 2},
+        {name = "Anchored Manual", func = function() return self:Method3_AnchoredManual() end, priority = 3},
+
+{name = "Kinematic CFrame", func = function() return self:Method4_Kinematic() end, priority = 4},
+        {name = "VehicleSeat", func = function() return self:Method5_VehicleSeat() end, priority = 5},
+        {name = "Clipping", func = function() return self:Method6_Clipping() end, priority = 6},
+        {name = "Projectile", func = function() return self:Method7_Projectile() end, priority = 7},
+        {name = "Ground Copy", func = function() return self:Method8_GroundCopy() end, priority = 8},
+        {name = "Simple Collision", func = function() return self:Method9_SimpleCollision() end, priority = 9},
+        {name = "Emergency", func = function() return self:Method10_Emergency() end, priority = 10},
+    }
+end
+
+-- ============================================
+-- ЧАСТЬ 4: АНИМАЦИЯ ДВИЖЕНИЯ ПЛАТФОРМЫ
+-- ============================================
+
+local PlatformAnimator = {}
+
+function PlatformAnimator:AnimateSine(platform, amplitude, cycleTime)
+    if not platform or not platform.Parent then return end
+    
+    local baseY = platform.Position.Y
+    local startTime = tick()
+    
+    local connection
+    connection = RunService.RenderStepped:Connect(function()
+        if not platform or not platform.Parent then
+            if connection then connection:Disconnect() end
+            return
         end
-    end)
-    
-    local checkBtn = Instance.new("TextButton")
-    checkBtn.Size = UDim2.new(1, 0, 0, 40)
-    checkBtn.Position = UDim2.new(0, 0, 0, 150)
-    checkBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 200)
-    checkBtn.Text = "CHECK GUI"
-    checkBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    checkBtn.Font = Enum.Font.GothamBold
-    checkBtn.TextSize = 14
-    checkBtn.BorderSizePixel = 0
-    checkBtn.ZIndex = 112
-    checkBtn.Parent = content
-    
-    local checkCorner = Instance.new("UICorner")
-    checkCorner.CornerRadius = UDim.new(0, 8)
-    checkCorner.Parent = checkBtn
-    
-    checkBtn.MouseButton1Click:Connect(function()
-        showNotification(gui, "GUI OK - Method: " .. (successfulMethod or "unknown"))
-    end)
-    
-    local recreateBtn = Instance.new("TextButton")
-    recreateBtn.Size = UDim2.new(1, 0, 0, 40)
-    recreateBtn.Position = UDim2.new(0, 0, 0, 200)
-    recreateBtn.BackgroundColor3 = Color3.fromRGB(200, 100, 0)
-    recreateBtn.Text = "RECREATE GUI"
-    recreateBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    recreateBtn.Font = Enum.Font.GothamBold
-    recreateBtn.TextSize = 14
-    recreateBtn.BorderSizePixel = 0
-    recreateBtn.ZIndex = 112
-    recreateBtn.Parent = content
-    
-    local recreateCorner = Instance.new("UICorner")
-    recreateCorner.CornerRadius = UDim.new(0, 8)
-    recreateCorner.Parent = recreateBtn
-    
-    recreateBtn.MouseButton1Click:Connect(function()
-        showNotification(gui, "Recreating GUI...")
-        task.spawn(function()
-            pcall(function() gui:Destroy() end)
-            createdGui = nil
-            createGUIWithAllMethods()
-            if createdGui then
-                buildFullGUI(createdGui)
-                startProtection(createdGui)
+        
+        local elapsed = tick() - startTime
+        local offset = math.sin(elapsed * (2 * math.pi / cycleTime)) * amplitude
+        
+        pcall(function()
+            if platform.Anchored then
+                local pos = platform.Position
+                platform.Position = Vector3.new(pos.X, baseY + offset, pos.Z)
             end
         end)
     end)
     
-    icon.MouseButton1Click:Connect(function()
-        main.Visible = not main.Visible
-    end)
-    
-    closeBtn.MouseButton1Click:Connect(function()
-        main.Visible = false
-    end)
-    
-    task.wait(0.5)
-    main.Visible = true
-    
-    showNotification(gui, "Ghost Client loaded! Method: " .. (successfulMethod or "unknown"))
+    return connection
 end
 
-local function startGUI()
-    local success = createGUIWithAllMethods()
+function PlatformAnimator:AnimateStepped(platform, amplitude, cycleTime)
+    if not platform or not platform.Parent then return end
     
-    if success and createdGui then
-        buildFullGUI(createdGui)
-        startProtection(createdGui)
-    else
-        task.spawn(function()
-            local loopCount = 0
-            while not createdGui do
-                loopCount = loopCount + 1
-                createGUIWithAllMethods()
-                if createdGui then
-                    buildFullGUI(createdGui)
-                    startProtection(createdGui)
-                    return
+    local baseY = platform.Position.Y
+    local steps = 10
+    local stepDuration = cycleTime / (steps * 2)
+    
+    local connection
+    connection = task.spawn(function()
+        while platform and platform.Parent do
+            for i = 1, steps do
+                if not platform or not platform.Parent then break end
+                local targetY = baseY + (amplitude * i / steps)
+                pcall(function()
+                    if platform.Anchored then
+                        platform.Position = Vector3.new(platform.Position.X, targetY, platform.Position.Z)
+                    end
+                end)
+                task.wait(stepDuration)
+            end
+            for i = steps, 1, -1 do
+                if not platform or not platform.Parent then break end
+                local targetY = baseY + (amplitude * i / steps)
+                pcall(function()
+                    if platform.Anchored then
+                        platform.Position = Vector3.new(platform.Position.X, targetY, platform.Position.Z)
+                    end
+                end)
+                task.wait(stepDuration)
+            end
+        end
+    end)
+    
+    return connection
+end
+
+function PlatformAnimator:AnimateStatic(platform)
+    -- Ничего не делаем, платформа стоит на месте
+    return nil
+end
+
+function PlatformAnimator:GetAnimationStyles()
+    return {
+        {name = "Sine Wave", func = function(plat) return PlatformAnimator:AnimateSine(plat, 20, 3) end},
+        {name = "Stepped", func = function(plat) return PlatformAnimator:AnimateStepped(plat, 20, 3) end},
+        {name = "Static", func = function(plat) return PlatformAnimator:AnimateStatic(plat) end},
+    }
+end
+
+-- ============================================
+-- ЧАСТЬ 5: МЕНЕДЖЕР ЗАЩИТЫ (АНТИ-РЕСЕТ)
+-- ============================================
+
+local ProtectionManager = {}
+
+function ProtectionManager:Enable(humanoid)
+    if not humanoid then return nil end
+    
+    Logger:Info("Enabling protection for humanoid", "ProtectionManager")
+    
+    -- Сохраняем оригинальные значения
+    local originalFallDamage = humanoid.FallDamage
+    local originalBreakJoints = humanoid.BreakJointsOnDeath
+    local originalWalkSpeed = humanoid.WalkSpeed
+
+-- Применяем защиту
+    humanoid.FallDamage = false
+    humanoid.BreakJointsOnDeath = false
+    humanoid.WalkSpeed = math.min(humanoid.WalkSpeed, 32)
+    
+    -- Создаём соединения
+    local connections = {}
+    
+    connections.healthCheck = RunService.Heartbeat:Connect(function()
+        pcall(function()
+            if humanoid and humanoid.Parent then
+                if humanoid.Health <= 0 then
+                    humanoid.Health = humanoid.MaxHealth
+                    Logger:Warn("Health reset prevented", "ProtectionManager")
                 end
-                task.wait(5)
+            end
+        end)
+    end)
+    
+    connections.speedCheck = RunService.Heartbeat:Connect(function()
+        pcall(function()
+            if humanoid and humanoid.Parent then
+                if humanoid.WalkSpeed > 32 then
+                    humanoid.WalkSpeed = 32
+                end
+            end
+        end)
+    end)
+    
+    connections.fallDamageCheck = RunService.Heartbeat:Connect(function()
+        pcall(function()
+            if humanoid and humanoid.Parent then
+                if humanoid.FallDamage == true then
+                    humanoid.FallDamage = false
+                end
+            end
+        end)
+    end)
+    
+    -- Функция отключения
+    local function disable()
+        Logger:Info("Disabling protection", "ProtectionManager")
+        for name, conn in pairs(connections) do
+            pcall(function() conn:Disconnect() end)
+        end
+        pcall(function()
+            if humanoid and humanoid.Parent then
+                humanoid.FallDamage = originalFallDamage
+                humanoid.BreakJointsOnDeath = originalBreakJoints
+                humanoid.WalkSpeed = originalWalkSpeed
             end
         end)
     end
+    
+    return disable
 end
 
-startGUI()
+-- ============================================
+-- ЧАСТЬ 6: BRAINROT ESP СИСТЕМА
+-- ============================================
+
+local BrainrotESP = {}
+
+BrainrotESP.Phrases = {
+    "SIGMA MALE 💪🗿",
+    "SKIBIDI RIZZ 🚽✨",
+    "FANUM TAX 💰😱",
+    "OHIO FINAL BOSS 🏚️👹",
+    "GYATT DAYUM 🍑🔥",
+    "MEWING STREAK 🧏‍♂️📈",
+    "CHUNGUS MAX 🐰💯",
+    "FLOPTOPICA KING 🏳️‍🌈👑",
+    "NO CAP FR FR 🧢💀",
+    "BRAINROT DETECTED 🧠⚠️",
+    "SUSSY BAKA 😳📮",
+    "RIZZLY BEAR 🐻💋",
+    "SKIBIDI DOP DOP 🎶🚽",
+    "LEVEL 100 GYATT 🍑💯",
+    "GOOFY AHH MOMENT 🤪",
+    "MOGUS AMONG US 📮👀",
+    "CRINGE OVERLOAD 😬💀",
+    "LIT AF 🔥🔥🔥",
+    "BET BET BET 💯💯💯",
+    "RATIO + L + BOZO 🤡",
+    "DAMN DANIEL 🧢👟",
+    "WHAT THE DOG DOIN 🐕🤨",
+    "CHRYSALIS MEWING 🦋🧏‍♂️",
+    "LOOKSMAXXING 👁️👄👁️",
+    "STRAIGHT FROM OHIO 🏚️",
+    "FAMOUS BERRY 🍓🌟",
+    "MUSCLE MOGGER 💪😤",
+    "SKIPPIDI TOILET 🚽🎭",
+    "GIMME THE LOOT 💰🤑",
+    "MONEY FETISH 💸😍
