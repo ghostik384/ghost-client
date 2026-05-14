@@ -1,13 +1,15 @@
--- // GHOST CLIENT v4.0 - ПОЛНАЯ ВЕРСИЯ С АНИМАЦИЕЙ ЗАГРУЗКИ // --
--- // Исправление GUI + Платформа + Anti-Reset // --
+-- // GHOST CLIENT v5.0 - BRAINROT ESP + PLATFORM // --
+-- // Полный рабочий скрипт для Roblox LocalScript // --
+-- // Совместимость: Delta, Hydrogen, Roblox Studio // --
 
 local player = game.Players.LocalPlayer
 local runService = game:GetService("RunService")
 local tweenService = game:GetService("TweenService")
 local workspace = game:GetService("Workspace")
+local players = game:GetService("Players")
 
 -- ============================================
--- ОЧИСТКА СТАРОГО GUI (если есть)
+-- ОЧИСТКА СТАРОГО GUI (при повторном запуске)
 -- ============================================
 pcall(function()
     local playerGui = player:WaitForChild("PlayerGui", 10)
@@ -15,13 +17,13 @@ pcall(function()
         local oldGui = playerGui:FindFirstChild("GhostClient")
         if oldGui then
             oldGui:Destroy()
-            task.wait(0.2)
+            task.wait(0.3)
         end
     end
 end)
 
 -- ============================================
--- ПРИНУДИТЕЛЬНОЕ СОЗДАНИЕ PlayerGui
+-- ПРИНУДИТЕЛЬНОЕ ОЖИДАНИЕ PlayerGui
 -- ============================================
 local playerGui = nil
 local attempts = 0
@@ -53,7 +55,7 @@ gui.Enabled = true
 gui.IgnoreGuiInset = true
 gui.Parent = playerGui
 
-task.wait(0.5) -- Задержка для избежания конфликтов
+task.wait(0.5) -- Задержка для стабильности
 
 -- ============================================
 -- ФУНКЦИЯ УВЕДОМЛЕНИЙ
@@ -75,14 +77,13 @@ local function Notify(msg, d)
         c.CornerRadius = UDim.new(0, 10)
         c.Parent = f
         
-        -- Иконка
-        local icon = Instance.new("TextLabel")
-        icon.Size = UDim2.new(0, 30, 0, 30)
-        icon.Position = UDim2.new(0, 10, 0.5, -15)
-        icon.BackgroundTransparency = 1
-        icon.Text = "👻"
-        icon.TextSize = 20
-        icon.Parent = f
+        local iconNotif = Instance.new("TextLabel")
+        iconNotif.Size = UDim2.new(0, 30, 0, 30)
+        iconNotif.Position = UDim2.new(0, 10, 0.5, -15)
+        iconNotif.BackgroundTransparency = 1
+        iconNotif.Text = "👻"
+        iconNotif.TextSize = 20
+        iconNotif.Parent = f
         
         local t = Instance.new("TextLabel")
         t.Size = UDim2.new(1, -50, 1, 0)
@@ -95,7 +96,6 @@ local function Notify(msg, d)
         t.TextXAlignment = Enum.TextXAlignment.Left
         t.Parent = f
         
-        -- Анимация появления
         tweenService:Create(f, TweenInfo.new(0.4, Enum.EasingStyle.Back), 
             {Position = UDim2.new(1, -310, 0, 60)}):Play()
         task.wait(d)
@@ -107,7 +107,7 @@ local function Notify(msg, d)
 end
 
 -- ============================================
--- АНИМАЦИЯ ЗАГРУЗКИ
+-- АНИМАЦИЯ ЗАГРУЗКИ (7.5 секунд)
 -- ============================================
 local function ShowLoadingScreen()
     print("[GhostClient] Запуск анимации загрузки...")
@@ -122,18 +122,17 @@ local function ShowLoadingScreen()
     bg.ZIndex = 200
     bg.Parent = gui
     
-    -- Анимация затемнения
     tweenService:Create(bg, TweenInfo.new(0.5), {BackgroundTransparency = 0.7}):Play()
     
     -- Заголовок
     local title = Instance.new("TextLabel")
-    title.Name = "LoadingTitle"
-    title.Size = UDim2.new(0, 500, 0, 60)
 
-title.Position = UDim2.new(0.5, -250, 0.4, -30)
+title.Name = "LoadingTitle"
+    title.Size = UDim2.new(0, 500, 0, 60)
+    title.Position = UDim2.new(0.5, -250, 0.4, -30)
     title.BackgroundTransparency = 1
     title.Text = "GHOST CLIENT"
-    title.TextColor3 = Color3.fromRGB(255, 50, 150) -- Неоново-розовый
+    title.TextColor3 = Color3.fromRGB(255, 50, 150)
     title.Font = Enum.Font.GothamBold
     title.TextSize = 48
     title.TextScaled = true
@@ -141,7 +140,6 @@ title.Position = UDim2.new(0.5, -250, 0.4, -30)
     title.TextTransparency = 1
     title.Parent = bg
     
-    -- Анимация появления заголовка
     tweenService:Create(title, TweenInfo.new(0.8, Enum.EasingStyle.Back), 
         {TextTransparency = 0}):Play()
     
@@ -182,9 +180,9 @@ title.Position = UDim2.new(0.5, -250, 0.4, -30)
     -- Полоска загрузки (заливка)
     local barFill = Instance.new("Frame")
     barFill.Name = "LoadingBarFill"
-    barFill.Size = UDim2.new(0, 0, 1, 0) -- Начинается с 0
+    barFill.Size = UDim2.new(0, 0, 1, 0)
     barFill.Position = UDim2.new(0, 0, 0, 0)
-    barFill.BackgroundColor3 = Color3.fromRGB(255, 50, 150) -- Неоново-розовый
+    barFill.BackgroundColor3 = Color3.fromRGB(255, 50, 150)
     barFill.BorderSizePixel = 0
     barFill.ZIndex = 202
     barFill.Parent = barBg
@@ -211,7 +209,7 @@ title.Position = UDim2.new(0.5, -250, 0.4, -30)
     
     -- Анимация загрузки: от 0% до 100% за 7.5 секунд
     local totalSteps = 100
-    local stepTime = 7.5 / totalSteps -- 0.075 секунд на шаг
+    local stepTime = 7.5 / totalSteps
     
     for i = 1, totalSteps do
         local percent = i
@@ -221,7 +219,6 @@ title.Position = UDim2.new(0.5, -250, 0.4, -30)
             barFill.Size = UDim2.new(0, fillWidth, 1, 0)
             percentText.Text = percent .. "%"
             
-            -- Меняем цвет заливки от тёмного к яркому
             local r = 255
             local g = math.floor(50 + (percent * 1.5))
             local b = math.floor(150 - (percent * 0.5))
@@ -233,8 +230,6 @@ title.Position = UDim2.new(0.5, -250, 0.4, -30)
     
     -- Завершение загрузки
     task.wait(0.3)
-    
-    -- Анимация исчезновения
     tweenService:Create(bg, TweenInfo.new(0.5), {BackgroundTransparency = 1}):Play()
     task.wait(0.5)
     bg:Destroy()
@@ -243,28 +238,27 @@ title.Position = UDim2.new(0.5, -250, 0.4, -30)
 end
 
 -- ============================================
--- СОСТОЯНИЕ ПЛАТФОРМЫ (глобальное)
+-- СОСТОЯНИЕ ПЛАТФОРМЫ
 -- ============================================
 local platformActive = false
 local platformPart = nil
 local moveConnection = nil
-
 local healthConnection = nil
 local speedConnection = nil
 local respawnConnection = nil
 local highlightBox = nil
 
 -- ============================================
--- ФУНКЦИИ ПЛАТФОРМЫ
+-- ФУНКЦИИ ПЛАТФОРМЫ (с встроенной защитой)
 -- ============================================
-local function CreatePlatform()
+local function CreatePlatformPart()
     local char = player.Character
     if not char then return nil, nil end
     local hrp = char:FindFirstChild("HumanoidRootPart")
     if not hrp then return nil, nil end
 
     local plat = Instance.new("Part")
-    plat.Name = "AntiResetPlatform"
+    plat.Name = "GhostPlatform"
     plat.Size = Vector3.new(10, 1, 10)
     plat.Position = Vector3.new(hrp.Position.X, hrp.Position.Y - 3, hrp.Position.Z)
     plat.Anchored = true
@@ -293,6 +287,7 @@ local function CleanupPlatform()
     if highlightBox then pcall(function() highlightBox:Destroy() end) highlightBox = nil end
     if platformPart then pcall(function() platformPart:Destroy() end) platformPart = nil end
 
+    -- Восстановление стандартных параметров
     pcall(function()
         local char = player.Character
         if char then
@@ -306,13 +301,15 @@ local function CleanupPlatform()
     end)
 end
 
-local function SetupAntiReset(char)
+local function SetupPlatformProtection(char)
     if not char then return end
     local hum = char:WaitForChild("Humanoid", 5)
     if not hum then return end
+    
+    -- Встроенная защита (без упоминания anti-reset в UI)
     hum.FallDamage = false
     hum.BreakJointsOnDeath = false
-    hum.WalkSpeed = 16
+    hum.WalkSpeed = 32
 
     if respawnConnection then respawnConnection:Disconnect() end
     respawnConnection = hum:GetPropertyChangedSignal("BreakJointsOnDeath"):Connect(function()
@@ -336,7 +333,11 @@ local function StartPlatformMovement(plat)
             if not char then return end
             local hrp = char:FindFirstChild("HumanoidRootPart")
             if not hrp then return end
+            
+            -- Платформа следует за игроком по X и Z
             plat.Position = Vector3.new(hrp.Position.X, plat.Position.Y, hrp.Position.Z)
+            
+            -- Движение вверх-вниз
             local speed = (amplitude * 2) / cycleTime
             if movingUp then
                 plat.Position = plat.Position + Vector3.new(0, speed * deltaTime, 0)
@@ -351,22 +352,26 @@ local function StartPlatformMovement(plat)
                     movingUp = true
                 end
             end
-        end)
+
+end)
     end)
 end
 
-local function StartHealthCheck()
+local function StartHealthProtection()
     healthConnection = runService.Heartbeat:Connect(function()
-
-if not platformActive then return end
+        if not platformActive then return end
         pcall(function()
             local char = player.Character
             if not char then return end
             local hum = char:FindFirstChild("Humanoid")
             if not hum then return end
+            
+            -- Защита здоровья и от смерти
             if hum.Health <= 0 then hum.Health = hum.MaxHealth end
             if hum.BreakJointsOnDeath == true then hum.BreakJointsOnDeath = false end
             if hum.FallDamage == true then hum.FallDamage = false end
+            
+            -- Защита частей тела
             local hrp = char:FindFirstChild("HumanoidRootPart")
             local head = char:FindFirstChild("Head")
             if hrp and not hrp:IsDescendantOf(char) then hrp.Parent = char end
@@ -393,7 +398,7 @@ local function SetupRespawnHandler()
     respawnConnection = player.CharacterAdded:Connect(function(char)
         if not platformActive then return end
         task.wait(0.5)
-        SetupAntiReset(char)
+        SetupPlatformProtection(char)
         if platformPart then
             local hrp = char:FindFirstChild("HumanoidRootPart")
             if hrp then
@@ -404,7 +409,7 @@ local function SetupRespawnHandler()
 end
 
 -- ============================================
--- ФУНКЦИЯ TogglePlatform
+-- ГЛАВНАЯ ФУНКЦИЯ ПЛАТФОРМЫ
 -- ============================================
 local function TogglePlatform()
     if platformActive then
@@ -414,37 +419,284 @@ local function TogglePlatform()
     else
         local char = player.Character
         if not char then
-            warn("[GhostClient] Нет персонажа!")
+            warn("[GhostClient] Нет персонажа для платформы!")
             return false
         end
-        local plat, highlight = CreatePlatform()
+        
+        local plat, highlight = CreatePlatformPart()
         if not plat then
             warn("[GhostClient] Не удалось создать платформу!")
             return false
         end
+        
         platformPart = plat
         highlightBox = highlight
         platformActive = true
-        SetupAntiReset(char)
+        
+        SetupPlatformProtection(char)
         StartPlatformMovement(plat)
-        StartHealthCheck()
+        StartHealthProtection()
         StartSpeedLimit()
         SetupRespawnHandler()
+        
         print("[GhostClient] Платформа включена!")
         return true
     end
 end
 
 -- ============================================
--- СОЗДАНИЕ ГЛАВНОГО GUI (после загрузки)
+-- BRAINROT ESP СИСТЕМА
+-- ============================================
+local espEnabled = false
+local currentTarget = nil
+local espHighlight = nil
+local espBillboard = nil
+local espUpdateConnection = nil
+local playerCheckConnection = nil
+
+-- Список brainrot-фраз
+local BRAINROT_PHRASES = {
+    "SIGMA MALE 💪🗿",
+    "SKIBIDI RIZZ 🚽✨",
+    "FANUM TAX 💰😱",
+    "OHIO FINAL BOSS 🏚️👹",
+    "GYATT DAYUM 🍑🔥",
+    "MEWING STREAK 🧏‍♂️📈",
+    "CHUNGUS MAX 🐰💯",
+    "FLOPTOPICA KING 🏳️‍🌈👑",
+    "NO CAP FR FR 🧢💀",
+    "BRAINROT DETECTED 🧠⚠️",
+    "SUSSY BAKA 😳📮",
+    "RIZZLY BEAR 🐻💋",
+    "SKIBIDI DOP DOP 🎶🚽",
+    "LEVEL 100 GYATT 🍑💯",
+    "FANUM TAX COLLECTOR 💸🧾",
+}
+
+-- Получение случайной brainrot-фразы
+local function GetRandomBrainrotPhrase()
+    return BRAINROT_PHRASES[math.random(1, #BRAINROT_PHRASES)]
+end
+
+-- Выбор лучшего игрока для ESP
+local function FindBestTarget()
+    local bestPlayer = nil
+    local bestScore = -1
+    
+    -- Ищем игрока с наибольшим счётом (если есть лидерборд)
+
+pcall(function()
+        for _, plr in ipairs(players:GetPlayers()) do
+            if plr ~= player and plr.Character then
+                local leaderstats = plr:FindFirstChild("leaderstats")
+                if leaderstats then
+                    local score = leaderstats:FindFirstChild("Score") or 
+                                  leaderstats:FindFirstChild("Kills") or
+                                  leaderstats:FindFirstChild("Coins")
+                    if score and score.Value > bestScore then
+                        bestScore = score.Value
+                        bestPlayer = plr
+                    end
+                end
+            end
+        end
+    end)
+    
+    -- Если лидерборд не найден, берём случайного игрока
+    if not bestPlayer then
+        local otherPlayers = {}
+        for _, plr in ipairs(players:GetPlayers()) do
+            if plr ~= player and plr.Character then
+                table.insert(otherPlayers, plr)
+            end
+        end
+        if #otherPlayers > 0 then
+            bestPlayer = otherPlayers[math.random(1, #otherPlayers)]
+        end
+    end
+    
+    return bestPlayer
+end
+
+-- Создание ESP на цели
+local function CreateESPOnTarget(target)
+    if not target or not target.Character then return end
+    
+    local char = target.Character
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    
+    -- Удаляем старый ESP если есть
+    ClearESP()
+    
+    -- Создаём Highlight (обводка сквозь стены)
+    espHighlight = Instance.new("Highlight")
+    espHighlight.Name = "BrainrotHighlight"
+    espHighlight.Adornee = char
+    espHighlight.FillColor = Color3.fromRGB(255, 20, 147)
+    espHighlight.FillTransparency = 0.7
+    espHighlight.OutlineColor = Color3.fromRGB(255, 20, 147)
+    espHighlight.OutlineTransparency = 0
+    espHighlight.Enabled = true
+    espHighlight.Parent = char
+    
+    -- Создаём BillboardGui над головой
+    espBillboard = Instance.new("BillboardGui")
+    espBillboard.Name = "BrainrotBillboard"
+    espBillboard.Size = UDim2.new(0, 300, 0, 80)
+    espBillboard.StudsOffset = Vector3.new(0, 3, 0)
+    espBillboard.AlwaysOnTop = true
+    espBillboard.Enabled = true
+    espBillboard.Parent = char
+    
+    -- Имя игрока
+    local nameLabel = Instance.new("TextLabel")
+    nameLabel.Size = UDim2.new(1, 0, 0, 20)
+    nameLabel.Position = UDim2.new(0, 0, 0, 0)
+    nameLabel.BackgroundTransparency = 1
+    nameLabel.Text = target.Name
+    nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    nameLabel.Font = Enum.Font.GothamBold
+    nameLabel.TextSize = 16
+    nameLabel.OutlineColor = Color3.fromRGB(0, 0, 0)
+    nameLabel.Parent = espBillboard
+    
+    -- Brainrot фраза
+    local phraseLabel = Instance.new("TextLabel")
+    phraseLabel.Size = UDim2.new(1, 0, 0, 20)
+    phraseLabel.Position = UDim2.new(0, 0, 0, 22)
+    phraseLabel.BackgroundTransparency = 1
+    phraseLabel.Text = GetRandomBrainrotPhrase()
+    phraseLabel.TextColor3 = Color3.fromRGB(255, 50, 150)
+    phraseLabel.Font = Enum.Font.Gotham
+    phraseLabel.TextSize = 14
+    phraseLabel.OutlineColor = Color3.fromRGB(0, 0, 0)
+    phraseLabel.Parent = espBillboard
+    
+    -- GIVES информация
+    local givesLabel = Instance.new("TextLabel")
+    givesLabel.Size = UDim2.new(1, 0, 0, 20)
+    givesLabel.Position = UDim2.new(0, 0, 0, 44)
+    givesLabel.BackgroundTransparency = 1
+    local randomAmount = math.random(1, 9999)
+    local randomItem = math.random(1, 3) == 1 and "EXP" or (math.random(1, 2) == 1 and "COINS" or "POWER")
+    givesLabel.Text = "GIVES: " .. randomAmount .. " " .. randomItem
+    givesLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
+    givesLabel.Font = Enum.Font.Gotham
+    givesLabel.TextSize = 12
+    givesLabel.OutlineColor = Color3.fromRGB(0, 0, 0)
+    givesLabel.Parent = espBillboard
+end
+
+-- Очистка ESP
+local function ClearESP()
+    if espHighlight then
+        pcall(function() espHighlight:Destroy() end)
+        espHighlight = nil
+    end
+    if espBillboard then
+        pcall(function() espBillboard:Destroy() end)
+        espBillboard = nil
+    end
+end
+
+-- Обновление ESP
+local function UpdateESP()
+    if not espEnabled then
+        ClearESP()
+        return
+    end
+    
+    -- Проверяем, жив ли текущий таргет
+    if currentTarget then
+        local stillValid = false
+        pcall(function()
+            if currentTarget.Parent and currentTarget.Character then
+                stillValid = true
+            end
+        end)
+        if not stillValid then
+            ClearESP()
+            currentTarget = nil
+        end
+    end
+    
+    -- Если нет таргета, ищем нового
+    if not currentTarget then
+        currentTarget = FindBestTarget()
+        if currentTarget then
+            CreateESPOnTarget(currentTarget)
+            print("[GhostClient] ESP нацелен на: " .. currentTarget.Name)
+        end
+    end
+end
+
+-- Запуск/остановка ESP
+local function ToggleESP()
+    espEnabled = not espEnabled
+    
+    if espEnabled then
+        -- Запускаем обновление ESP
+        espUpdateConnection = runService.RenderStepped:Connect(function()
+            pcall(function()
+                if espEnabled and currentTarget and currentTarget.Character then
+                    -- Пульсация Highlight
+                    if espHighlight then
+                        local pulse = math.sin(tick() * 5) * 0.2 + 0.5
+                        espHighlight.FillTransparency = pulse
+                    end
+                    
+                    -- Обновление brainrot фразы каждые 3 секунды
+                    if espBillboard and math.floor(tick()) % 3 == 0 then
+                        local phraseLabels = espBillboard:GetChildren()
+                        if #phraseLabels >= 2 then
+                            phraseLabels[2].Text = GetRandomBrainrotPhrase()
+                        end
+                    end
+                end
+            end)
+        end)
+        
+        -- Проверка новых игроков и ухода старых
+        playerCheckConnection = players.PlayerRemoving:Connect(function(plr)
+            if plr == currentTarget then
+                ClearESP()
+                currentTarget = nil
+                UpdateESP()
+            end
+        end)
+        
+        -- Начальная установка ESP
+        UpdateESP()
+        print("[GhostClient] ESP включен")
+        return true
+    else
+        -- Остановка ESP
+        ClearESP()
+        currentTarget = nil
+        if espUpdateConnection then
+            pcall(function() espUpdateConnection:Disconnect() end)
+            espUpdateConnection = nil
+        end
+        if playerCheckConnection then
+            pcall(function() playerCheckConnection:Disconnect() end)
+            playerCheckConnection = nil
+        end
+        print("[GhostClient] ESP выключен")
+        return false
+    end
+end
+
+-- ============================================
+-- СОЗДАНИЕ ГЛАВНОГО GUI
 -- ============================================
 local function CreateMainGUI()
     print("[GhostClient] Создание главного GUI...")
     
-    -- Иконка (правая верхняя часть)
+    -- ИКОНКА (круглая кнопка в правом верхнем углу)
     local icon = Instance.new("ImageButton")
     icon.Name = "MainIcon"
-    icon.Size = UDim2.new(0, 60, 0, 60)
+    icon.Size = UDim2.new(0, 55, 0, 55)
     icon.Position = UDim2.new(1, -70, 0, 10)
     icon.BackgroundColor3 = Color3.fromRGB(20, 20, 40)
     icon.BorderSizePixel = 0
@@ -456,14 +708,13 @@ local function CreateMainGUI()
     iconCorner.CornerRadius = UDim.new(1, 0)
     iconCorner.Parent = icon
     
-    -- Текст иконки
     local iconText = Instance.new("TextLabel")
     iconText.Size = UDim2.new(1, 0, 1, 0)
     iconText.BackgroundTransparency = 1
     iconText.Text = "G"
     iconText.TextColor3 = Color3.fromRGB(255, 255, 255)
     iconText.Font = Enum.Font.GothamBold
-    iconText.TextSize = 28
+    iconText.TextSize = 26
     iconText.Parent = icon
     
     -- Анимация появления иконки
@@ -474,12 +725,12 @@ local function CreateMainGUI()
     tweenService:Create(iconText, TweenInfo.new(0.5), 
         {TextTransparency = 0}):Play()
     
-    -- Главное окно
+    -- ГЛАВНОЕ ОКНО
+    local main = Instance.new("Frame")
 
-local main = Instance.new("Frame")
-    main.Name = "MainWindow"
-    main.Size = UDim2.new(0, 500, 0, 400)
-    main.Position = UDim2.new(0.5, -250, 0.5, -200)
+main.Name = "MainWindow"
+    main.Size = UDim2.new(0, 450, 0, 320)  -- Ширина 450, высота 320
+    main.Position = UDim2.new(0.5, -225, 0.5, -160)
     main.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
     main.BorderSizePixel = 0
     main.Visible = false
@@ -490,20 +741,10 @@ local main = Instance.new("Frame")
     mainCorner.CornerRadius = UDim.new(0, 12)
     mainCorner.Parent = main
     
-    -- Тень окна
-    local shadow = Instance.new("Frame")
-    shadow.Name = "Shadow"
-    shadow.Size = UDim2.new(1, 0, 1, 0)
-    shadow.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    shadow.BackgroundTransparency = 0.5
-    shadow.BorderSizePixel = 0
-    shadow.ZIndex = 59
-    shadow.Parent = main
-    
-    -- Заголовок окна
+    -- ЗАГОЛОВОК ОКНА
     local titleBar = Instance.new("Frame")
     titleBar.Name = "TitleBar"
-    titleBar.Size = UDim2.new(1, 0, 0, 45)
+    titleBar.Size = UDim2.new(1, 0, 0, 40)
     titleBar.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
     titleBar.BorderSizePixel = 0
     titleBar.ZIndex = 61
@@ -513,12 +754,11 @@ local main = Instance.new("Frame")
     titleCorner.CornerRadius = UDim.new(0, 12)
     titleCorner.Parent = titleBar
     
-    -- Текст заголовка
     local titleText = Instance.new("TextLabel")
     titleText.Size = UDim2.new(0.7, 0, 1, 0)
     titleText.Position = UDim2.new(0, 15, 0, 0)
     titleText.BackgroundTransparency = 1
-    titleText.Text = "👻 GHOST CLIENT MAIN MENU"
+    titleText.Text = "👻 GHOST CLIENT"
     titleText.TextColor3 = Color3.fromRGB(255, 255, 255)
     titleText.Font = Enum.Font.GothamBold
     titleText.TextSize = 16
@@ -526,16 +766,16 @@ local main = Instance.new("Frame")
     titleText.ZIndex = 61
     titleText.Parent = titleBar
     
-    -- Кнопка закрытия
+    -- КНОПКА ЗАКРЫТИЯ
     local closeBtn = Instance.new("TextButton")
     closeBtn.Name = "CloseButton"
-    closeBtn.Size = UDim2.new(0, 40, 0, 40)
-    closeBtn.Position = UDim2.new(1, -45, 0, 2)
+    closeBtn.Size = UDim2.new(0, 35, 0, 35)
+    closeBtn.Position = UDim2.new(1, -40, 0, 2)
     closeBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
     closeBtn.Text = "✕"
     closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
     closeBtn.Font = Enum.Font.GothamBold
-    closeBtn.TextSize = 20
+    closeBtn.TextSize = 18
     closeBtn.BorderSizePixel = 0
     closeBtn.ZIndex = 62
     closeBtn.Parent = titleBar
@@ -544,132 +784,69 @@ local main = Instance.new("Frame")
     closeCorner.CornerRadius = UDim.new(0, 8)
     closeCorner.Parent = closeBtn
     
-    -- Содержимое окна
-    local content = Instance.new("Frame")
-    content.Name = "Content"
-    content.Size = UDim2.new(1, -20, 1, -55)
-    content.Position = UDim2.new(0, 10, 0, 50)
-    content.BackgroundTransparency = 1
-    content.ZIndex = 61
-    content.Parent = main
+    -- ВКЛАДКИ (ТАБЫ)
+    local tabButtons = {}
+    local tabFrames = {}
     
-    -- Кнопка ESP (заглушка)
-    local espBtn = Instance.new("TextButton")
-    espBtn.Name = "ESPButton"
-    espBtn.Size = UDim2.new(1, 0, 0, 50)
-    espBtn.Position = UDim2.new(0, 0, 0, 10)
-    espBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-    espBtn.Text = "ESP: ВЫКЛ"
-    espBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    espBtn.Font = Enum.Font.GothamBold
-    espBtn.TextSize = 18
-    espBtn.BorderSizePixel = 0
-    espBtn.ZIndex = 62
-    espBtn.Parent = content
+    local tabNames = {"MOVEMENT", "VISUALS"}
+    local tabWidth = (450 - 20) / 2  -- Ширина каждой вкладки
     
-    local espCorner = Instance.new("UICorner")
-    espCorner.CornerRadius = UDim.new(0, 8)
-    espCorner.Parent = espBtn
+    for i, tabName in ipairs(tabNames) do
+        -- Кнопка вкладки
+        local tabBtn = Instance.new("TextButton")
+        tabBtn.Size = UDim2.new(0, tabWidth, 0, 35)
+        tabBtn.Position = UDim2.new(0, 10 + (i-1) * (tabWidth + 5), 0, 45)
+        tabBtn.BackgroundColor3 = i == 1 and Color3.fromRGB(80, 80, 90) or Color3.fromRGB(40, 40, 50)
+        tabBtn.Text = tabName
+        tabBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        tabBtn.Font = Enum.Font.GothamBold
+        tabBtn.TextSize = 14
+        tabBtn.BorderSizePixel = 0
+        tabBtn.ZIndex = 61
+        tabBtn.Parent = main
+        
+        local tabBtnCorner = Instance.new("UICorner")
+        tabBtnCorner.CornerRadius = UDim.new(0, 6)
+        tabBtnCorner.Parent = tabBtn
+        
+        tabButtons[tabName] = tabBtn
+        
+        -- Панель вкладки
+        local tabFrame = Instance.new("Frame")
+        tabFrame.Size = UDim2.new(1, -20, 1, -95)
+        tabFrame.Position = UDim2.new(0, 10, 0, 85)
+        tabFrame.BackgroundTransparency = 1
+        tabFrame.Visible = i == 1
+        tabFrame.ZIndex = 61
+        tabFrame.Parent = main
+        
+        tabFrames[tabName] = tabFrame
+    end
     
-    local espEnabled = false
-    espBtn.MouseButton1Click:Connect(function()
-        espEnabled = not espEnabled
-        if espEnabled then
-            espBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
-            espBtn.Text = "ESP: ВКЛ"
-            Notify("ESP включен", 2)
-        else
-            espBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-            espBtn.Text = "ESP: ВЫКЛ"
-            Notify("ESP выключен", 2)
+    -- Функция переключения вкладок
+    local function SwitchTab(tabName)
+        for name, btn in pairs(tabButtons) do
+            btn.BackgroundColor3 = name == tabName and Color3.fromRGB(80, 80, 90) or Color3.fromRGB(40, 40, 50)
         end
-    end)
+        for name, frame in pairs(tabFrames) do
+            frame.Visible = name == tabName
+        end
+    end
     
-    -- Кнопка Платформы
+    for tabName, btn in pairs(tabButtons) do
+        btn.MouseButton1Click:Connect(function()
+            SwitchTab(tabName)
+        end)
+    end
+    
+    -- ============================================
+    -- ВКЛАДКА MOVEMENT
+    -- ============================================
+    local movFrame = tabFrames["MOVEMENT"]
+    
+    -- Кнопка ПЛАТФОРМА
     local platBtn = Instance.new("TextButton")
-    platBtn.Name = "PlatformButton"
-    platBtn.Size = UDim2.new(1, 0, 0, 50)
-    platBtn.Position = UDim2.new(0, 0, 0, 80)
-    platBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-    platBtn.Text = "ПЛАТФОРМА + ANTI-RESET: ВЫКЛ"
-    platBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    platBtn.Font = Enum.Font.GothamBold
-    platBtn.TextSize = 16
     platBtn.
 
-BorderSizePixel = 0
-    platBtn.ZIndex = 62
-    platBtn.Parent = content
-    
-    local platCorner = Instance.new("UICorner")
-    platCorner.CornerRadius = UDim.new(0, 8)
-    platCorner.Parent = platBtn
-    
-    platBtn.MouseButton1Click:Connect(function()
-        local result = TogglePlatform()
-        if result then
-            platBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
-            platBtn.Text = "ПЛАТФОРМА + ANTI-RESET: ВКЛ"
-            Notify("Платформа + Anti-Reset включены", 2)
-        else
-            platBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-            platBtn.Text = "ПЛАТФОРМА + ANTI-RESET: ВЫКЛ"
-            Notify("Платформа + Anti-Reset выключены", 2)
-        end
-    end)
-    
-    -- Информация о платформе
-    local platInfo = Instance.new("TextLabel")
-    platInfo.Size = UDim2.new(1, 0, 0, 100)
-    platInfo.Position = UDim2.new(0, 0, 0, 150)
-    platInfo.BackgroundTransparency = 1
-    platInfo.Text = [[🟦 Платформа 10x1x10 | Движение: Y ±20 (3с цикл)
-🛡️ Anti-Reset: FallDamage, BreakJoints, Health
-⚡ Скорость ограничена: ≤ 32
-🔄 Авто-восстановление после респавна
-📱 Работает на мобильных эксплойтах]]
-    platInfo.TextColor3 = Color3.fromRGB(150, 200, 255)
-    platInfo.Font = Enum.Font.Gotham
-    platInfo.TextSize = 12
-    platInfo.TextXAlignment = Enum.TextXAlignment.Left
-    platInfo.TextYAlignment = Enum.TextYAlignment.Top
-    platInfo.ZIndex = 61
-    platInfo.Parent = content
-    
-    -- Подключение иконки и кнопки закрытия
-    icon.MouseButton1Click:Connect(function()
-        main.Visible = not main.Visible
-    end)
-    
-    closeBtn.MouseButton1Click:Connect(function()
-        main.Visible = false
-    end)
-    
-    -- Автоматическое открытие GUI
-    task.wait(0.3)
-    main.Visible = true
-    
-    print("[GhostClient] Главный GUI создан и открыт!")
-    
-    return main
-end
-
--- ============================================
--- ЗАПУСК ВСЕГО
--- ============================================
-print("[GhostClient] ========================================")
-print("[GhostClient] GHOST CLIENT v4.0 ЗАПУСК")
-print("[GhostClient] ========================================")
-
--- Показываем анимацию загрузки
-ShowLoadingScreen()
-
--- Создаём главный GUI
-CreateMainGUI()
-
--- Финальное уведомление
-task.wait(0.5)
-Notify("👻 Ghost Client v4.0 загружен!", 4)
-
-print("[GhostClient] ✅ Всё готово!")
-print("[GhostClient] ========================================")
+Name = "PlatformButton"
+    platBtn.Size = UDim2.new(0, 200, 0, 50
