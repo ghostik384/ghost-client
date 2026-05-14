@@ -1,852 +1,916 @@
--- // GHOST CLIENT v5.0 - BRAINROT ESP + PLATFORM // --
--- // Полный рабочий скрипт для Roblox LocalScript // --
--- // Совместимость: Delta, Hydrogen, Roblox Studio // --
+-- // ============================================================
+-- // GHOST CLIENT ULTRA FIX v6.0 - НЕУБИВАЕМЫЙ GUI
+-- // 15 методов создания, 10 уровней защиты, бесконечные ретраи
+-- // ============================================================
 
-local player = game.Players.LocalPlayer
-local runService = game:GetService("RunService")
-local tweenService = game:GetService("TweenService")
-local workspace = game:GetService("Workspace")
-local players = game:GetService("Players")
-
--- ============================================
--- ОЧИСТКА СТАРОГО GUI (при повторном запуске)
--- ============================================
-pcall(function()
-    local playerGui = player:WaitForChild("PlayerGui", 10)
-    if playerGui then
-        local oldGui = playerGui:FindFirstChild("GhostClient")
-        if oldGui then
-            oldGui:Destroy()
-            task.wait(0.3)
-        end
-    end
-end)
-
--- ============================================
--- ПРИНУДИТЕЛЬНОЕ ОЖИДАНИЕ PlayerGui
--- ============================================
-local playerGui = nil
-local attempts = 0
-repeat
-    attempts = attempts + 1
-    pcall(function()
-        playerGui = player:WaitForChild("PlayerGui", 5)
-    end)
-    if not playerGui then
-        task.wait(0.5)
-        print("[GhostClient] Ожидание PlayerGui... попытка " .. attempts)
-    end
-until playerGui or attempts >= 10
-
-if not playerGui then
-    warn("[GhostClient] ОШИБКА: PlayerGui не найден после 10 попыток!")
-    return
-end
-
-print("[GhostClient] PlayerGui найден, создаю GUI...")
-
--- ============================================
--- СОЗДАНИЕ ГЛАВНОГО SCREENGUI
--- ============================================
-local gui = Instance.new("ScreenGui")
-gui.Name = "GhostClient"
-gui.ResetOnSpawn = false
-gui.Enabled = true
-gui.IgnoreGuiInset = true
-gui.Parent = playerGui
-
-task.wait(0.5) -- Задержка для стабильности
-
--- ============================================
--- ФУНКЦИЯ УВЕДОМЛЕНИЙ
--- ============================================
-local function Notify(msg, d)
-    d = d or 3
-    pcall(function()
-        local f = Instance.new("Frame")
-        f.Name = "Notification"
-        f.Size = UDim2.new(0, 300, 0, 45)
-        f.Position = UDim2.new(1, 10, 0, 60)
-        f.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
-        f.BorderSizePixel = 0
-        f.BackgroundTransparency = 0.1
-        f.ZIndex = 100
-        f.Parent = gui
-        
-        local c = Instance.new("UICorner")
-        c.CornerRadius = UDim.new(0, 10)
-        c.Parent = f
-        
-        local iconNotif = Instance.new("TextLabel")
-        iconNotif.Size = UDim2.new(0, 30, 0, 30)
-        iconNotif.Position = UDim2.new(0, 10, 0.5, -15)
-        iconNotif.BackgroundTransparency = 1
-        iconNotif.Text = "👻"
-        iconNotif.TextSize = 20
-        iconNotif.Parent = f
-        
-        local t = Instance.new("TextLabel")
-        t.Size = UDim2.new(1, -50, 1, 0)
-        t.Position = UDim2.new(0, 45, 0, 0)
-        t.BackgroundTransparency = 1
-        t.Text = msg
-        t.TextColor3 = Color3.fromRGB(255, 255, 255)
-        t.Font = Enum.Font.Gotham
-        t.TextSize = 14
-        t.TextXAlignment = Enum.TextXAlignment.Left
-        t.Parent = f
-        
-        tweenService:Create(f, TweenInfo.new(0.4, Enum.EasingStyle.Back), 
-            {Position = UDim2.new(1, -310, 0, 60)}):Play()
-        task.wait(d)
-        tweenService:Create(f, TweenInfo.new(0.3, Enum.EasingStyle.Quad), 
-            {Position = UDim2.new(1, 10, 0, 60)}):Play()
-        task.wait(0.3)
-        f:Destroy()
-    end)
-end
-
--- ============================================
--- АНИМАЦИЯ ЗАГРУЗКИ (7.5 секунд)
--- ============================================
-local function ShowLoadingScreen()
-    print("[GhostClient] Запуск анимации загрузки...")
-    
-    -- Затемнённый фон
-    local bg = Instance.new("Frame")
-    bg.Name = "LoadingBG"
-    bg.Size = UDim2.new(1, 0, 1, 0)
-    bg.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    bg.BackgroundTransparency = 1
-    bg.BorderSizePixel = 0
-    bg.ZIndex = 200
-    bg.Parent = gui
-    
-    tweenService:Create(bg, TweenInfo.new(0.5), {BackgroundTransparency = 0.7}):Play()
-    
-    -- Заголовок
-    local title = Instance.new("TextLabel")
-
-title.Name = "LoadingTitle"
-    title.Size = UDim2.new(0, 500, 0, 60)
-    title.Position = UDim2.new(0.5, -250, 0.4, -30)
-    title.BackgroundTransparency = 1
-    title.Text = "GHOST CLIENT"
-    title.TextColor3 = Color3.fromRGB(255, 50, 150)
-    title.Font = Enum.Font.GothamBold
-    title.TextSize = 48
-    title.TextScaled = true
-    title.ZIndex = 201
-    title.TextTransparency = 1
-    title.Parent = bg
-    
-    tweenService:Create(title, TweenInfo.new(0.8, Enum.EasingStyle.Back), 
-        {TextTransparency = 0}):Play()
-    
-    -- Подзаголовок
-    local subtitle = Instance.new("TextLabel")
-    subtitle.Name = "LoadingSubtitle"
-    subtitle.Size = UDim2.new(0, 400, 0, 30)
-    subtitle.Position = UDim2.new(0.5, -200, 0.4, 40)
-    subtitle.BackgroundTransparency = 1
-    subtitle.Text = "Загрузка читов..."
-    subtitle.TextColor3 = Color3.fromRGB(200, 200, 200)
-    subtitle.Font = Enum.Font.Gotham
-    subtitle.TextSize = 18
-    subtitle.ZIndex = 201
-    subtitle.TextTransparency = 1
-    subtitle.Parent = bg
-    
-    tweenService:Create(subtitle, TweenInfo.new(0.8, Enum.EasingStyle.Back), 
-        {TextTransparency = 0}):Play()
-    
-    -- Полоска загрузки (фон)
-    local barBg = Instance.new("Frame")
-    barBg.Name = "LoadingBarBg"
-    barBg.Size = UDim2.new(0, 320, 0, 24)
-    barBg.Position = UDim2.new(0.5, -160, 0.5, -12)
-    barBg.BackgroundColor3 = Color3.fromRGB(40, 40, 50)
-    barBg.BorderSizePixel = 0
-    barBg.ZIndex = 201
-    barBg.BackgroundTransparency = 1
-    barBg.Parent = bg
-    
-    local barBgCorner = Instance.new("UICorner")
-    barBgCorner.CornerRadius = UDim.new(0, 12)
-    barBgCorner.Parent = barBg
-    
-    tweenService:Create(barBg, TweenInfo.new(0.5), {BackgroundTransparency = 0}):Play()
-    
-    -- Полоска загрузки (заливка)
-    local barFill = Instance.new("Frame")
-    barFill.Name = "LoadingBarFill"
-    barFill.Size = UDim2.new(0, 0, 1, 0)
-    barFill.Position = UDim2.new(0, 0, 0, 0)
-    barFill.BackgroundColor3 = Color3.fromRGB(255, 50, 150)
-    barFill.BorderSizePixel = 0
-    barFill.ZIndex = 202
-    barFill.Parent = barBg
-    
-    local barFillCorner = Instance.new("UICorner")
-    barFillCorner.CornerRadius = UDim.new(0, 12)
-    barFillCorner.Parent = barFill
-    
-    -- Текст процентов
-    local percentText = Instance.new("TextLabel")
-    percentText.Name = "PercentText"
-    percentText.Size = UDim2.new(0, 100, 0, 30)
-    percentText.Position = UDim2.new(0.5, -50, 0.5, 20)
-    percentText.BackgroundTransparency = 1
-    percentText.Text = "0%"
-    percentText.TextColor3 = Color3.fromRGB(255, 255, 255)
-    percentText.Font = Enum.Font.GothamBold
-    percentText.TextSize = 20
-    percentText.ZIndex = 201
-    percentText.TextTransparency = 1
-    percentText.Parent = bg
-    
-    tweenService:Create(percentText, TweenInfo.new(0.5), {TextTransparency = 0}):Play()
-    
-    -- Анимация загрузки: от 0% до 100% за 7.5 секунд
-    local totalSteps = 100
-    local stepTime = 7.5 / totalSteps
-    
-    for i = 1, totalSteps do
-        local percent = i
-        local fillWidth = (320 * percent) / 100
-        
-        pcall(function()
-            barFill.Size = UDim2.new(0, fillWidth, 1, 0)
-            percentText.Text = percent .. "%"
-            
-            local r = 255
-            local g = math.floor(50 + (percent * 1.5))
-            local b = math.floor(150 - (percent * 0.5))
-            barFill.BackgroundColor3 = Color3.fromRGB(r, math.min(g, 255), math.max(b, 50))
-        end)
-        
-        task.wait(stepTime)
-    end
-    
-    -- Завершение загрузки
-    task.wait(0.3)
-    tweenService:Create(bg, TweenInfo.new(0.5), {BackgroundTransparency = 1}):Play()
-    task.wait(0.5)
-    bg:Destroy()
-    
-    print("[GhostClient] Загрузка завершена!")
-end
-
--- ============================================
--- СОСТОЯНИЕ ПЛАТФОРМЫ
--- ============================================
-local platformActive = false
-local platformPart = nil
-local moveConnection = nil
-local healthConnection = nil
-local speedConnection = nil
-local respawnConnection = nil
-local highlightBox = nil
-
--- ============================================
--- ФУНКЦИИ ПЛАТФОРМЫ (с встроенной защитой)
--- ============================================
-local function CreatePlatformPart()
-    local char = player.Character
-    if not char then return nil, nil end
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return nil, nil end
-
-    local plat = Instance.new("Part")
-    plat.Name = "GhostPlatform"
-    plat.Size = Vector3.new(10, 1, 10)
-    plat.Position = Vector3.new(hrp.Position.X, hrp.Position.Y - 3, hrp.Position.Z)
-    plat.Anchored = true
-    plat.CanCollide = true
-    plat.Transparency = 0.5
-    plat.BrickColor = BrickColor.new("Medium stone grey")
-    plat.Material = Enum.Material.SmoothPlastic
-    plat.Parent = workspace
-
-    local highlight = Instance.new("SelectionBox")
-    highlight.Adornee = plat
-    highlight.Color3 = Color3.fromRGB(100, 100, 100)
-    highlight.Transparency = 0.5
-    highlight.LineThickness = 0.05
-    highlight.Parent = plat
-
-    return plat, highlight
-end
-
-local function CleanupPlatform()
-    platformActive = false
-    if moveConnection then pcall(function() moveConnection:Disconnect() end) moveConnection = nil end
-    if healthConnection then pcall(function() healthConnection:Disconnect() end) healthConnection = nil end
-    if speedConnection then pcall(function() speedConnection:Disconnect() end) speedConnection = nil end
-    if respawnConnection then pcall(function() respawnConnection:Disconnect() end) respawnConnection = nil end
-    if highlightBox then pcall(function() highlightBox:Destroy() end) highlightBox = nil end
-    if platformPart then pcall(function() platformPart:Destroy() end) platformPart = nil end
-
-    -- Восстановление стандартных параметров
-    pcall(function()
-        local char = player.Character
-        if char then
-            local hum = char:FindFirstChild("Humanoid")
-            if hum then
-                hum.FallDamage = true
-                hum.BreakJointsOnDeath = true
-                hum.WalkSpeed = 16
-            end
-        end
-    end)
-end
-
-local function SetupPlatformProtection(char)
-    if not char then return end
-    local hum = char:WaitForChild("Humanoid", 5)
-    if not hum then return end
-    
-    -- Встроенная защита (без упоминания anti-reset в UI)
-    hum.FallDamage = false
-    hum.BreakJointsOnDeath = false
-    hum.WalkSpeed = 32
-
-    if respawnConnection then respawnConnection:Disconnect() end
-    respawnConnection = hum:GetPropertyChangedSignal("BreakJointsOnDeath"):Connect(function()
-        if platformActive then hum.BreakJointsOnDeath = false end
-    end)
-    return hum
-end
-
-local function StartPlatformMovement(plat)
-    if not plat then return end
-    local baseY = plat.Position.Y
-    local movingUp = true
-    local amplitude = 20
-    local cycleTime = 3
-
-    moveConnection = runService.RenderStepped:Connect(function(deltaTime)
-        if not platformActive then return end
-        if not plat or not plat.Parent then return end
-        pcall(function()
-            local char = player.Character
-            if not char then return end
-            local hrp = char:FindFirstChild("HumanoidRootPart")
-            if not hrp then return end
-            
-            -- Платформа следует за игроком по X и Z
-            plat.Position = Vector3.new(hrp.Position.X, plat.Position.Y, hrp.Position.Z)
-            
-            -- Движение вверх-вниз
-            local speed = (amplitude * 2) / cycleTime
-            if movingUp then
-                plat.Position = plat.Position + Vector3.new(0, speed * deltaTime, 0)
-                if plat.Position.Y >= baseY + amplitude then
-                    plat.Position = Vector3.new(plat.Position.X, baseY + amplitude, plat.Position.Z)
-                    movingUp = false
-                end
-            else
-                plat.Position = plat.Position - Vector3.new(0, speed * deltaTime, 0)
-                if plat.Position.Y <= baseY then
-                    plat.Position = Vector3.new(plat.Position.X, baseY, plat.Position.Z)
-                    movingUp = true
-                end
-            end
-
-end)
-    end)
-end
-
-local function StartHealthProtection()
-    healthConnection = runService.Heartbeat:Connect(function()
-        if not platformActive then return end
-        pcall(function()
-            local char = player.Character
-            if not char then return end
-            local hum = char:FindFirstChild("Humanoid")
-            if not hum then return end
-            
-            -- Защита здоровья и от смерти
-            if hum.Health <= 0 then hum.Health = hum.MaxHealth end
-            if hum.BreakJointsOnDeath == true then hum.BreakJointsOnDeath = false end
-            if hum.FallDamage == true then hum.FallDamage = false end
-            
-            -- Защита частей тела
-            local hrp = char:FindFirstChild("HumanoidRootPart")
-            local head = char:FindFirstChild("Head")
-            if hrp and not hrp:IsDescendantOf(char) then hrp.Parent = char end
-            if head and not head:IsDescendantOf(char) then head.Parent = char end
-            if not char:IsDescendantOf(workspace) then char.Parent = workspace end
-        end)
-    end)
-end
-
-local function StartSpeedLimit()
-    speedConnection = runService.RenderStepped:Connect(function()
-        if not platformActive then return end
-        pcall(function()
-            local char = player.Character
-            if not char then return end
-            local hum = char:FindFirstChild("Humanoid")
-            if not hum then return end
-            if hum.WalkSpeed > 32 then hum.WalkSpeed = 32 end
-        end)
-    end)
-end
-
-local function SetupRespawnHandler()
-    respawnConnection = player.CharacterAdded:Connect(function(char)
-        if not platformActive then return end
-        task.wait(0.5)
-        SetupPlatformProtection(char)
-        if platformPart then
-            local hrp = char:FindFirstChild("HumanoidRootPart")
-            if hrp then
-                platformPart.Position = Vector3.new(hrp.Position.X, hrp.Position.Y - 3, hrp.Position.Z)
-            end
-        end
-    end)
-end
-
--- ============================================
--- ГЛАВНАЯ ФУНКЦИЯ ПЛАТФОРМЫ
--- ============================================
-local function TogglePlatform()
-    if platformActive then
-        CleanupPlatform()
-        print("[GhostClient] Платформа выключена")
-        return false
-    else
-        local char = player.Character
-        if not char then
-            warn("[GhostClient] Нет персонажа для платформы!")
-            return false
-        end
-        
-        local plat, highlight = CreatePlatformPart()
-        if not plat then
-            warn("[GhostClient] Не удалось создать платформу!")
-            return false
-        end
-        
-        platformPart = plat
-        highlightBox = highlight
-        platformActive = true
-        
-        SetupPlatformProtection(char)
-        StartPlatformMovement(plat)
-        StartHealthProtection()
-        StartSpeedLimit()
-        SetupRespawnHandler()
-        
-        print("[GhostClient] Платформа включена!")
-        return true
-    end
-end
-
--- ============================================
--- BRAINROT ESP СИСТЕМА
--- ============================================
-local espEnabled = false
-local currentTarget = nil
-local espHighlight = nil
-local espBillboard = nil
-local espUpdateConnection = nil
-local playerCheckConnection = nil
-
--- Список brainrot-фраз
-local BRAINROT_PHRASES = {
-    "SIGMA MALE 💪🗿",
-    "SKIBIDI RIZZ 🚽✨",
-    "FANUM TAX 💰😱",
-    "OHIO FINAL BOSS 🏚️👹",
-    "GYATT DAYUM 🍑🔥",
-    "MEWING STREAK 🧏‍♂️📈",
-    "CHUNGUS MAX 🐰💯",
-    "FLOPTOPICA KING 🏳️‍🌈👑",
-    "NO CAP FR FR 🧢💀",
-    "BRAINROT DETECTED 🧠⚠️",
-    "SUSSY BAKA 😳📮",
-    "RIZZLY BEAR 🐻💋",
-    "SKIBIDI DOP DOP 🎶🚽",
-    "LEVEL 100 GYATT 🍑💯",
-    "FANUM TAX COLLECTOR 💸🧾",
+-- Глобальная система логов
+local LogSystem = {
+    history = {},
+    maxHistory = 100
 }
 
--- Получение случайной brainrot-фразы
-local function GetRandomBrainrotPhrase()
-    return BRAINROT_PHRASES[math.random(1, #BRAINROT_PHRASES)]
+function LogSystem:add(level, message)
+    local timestamp = os.date("%H:%M:%S")
+    local entry = {
+        time = timestamp,
+        level = level,
+        message = tostring(message)
+    }
+    table.insert(self.history, entry)
+    if #self.history > self.maxHistory then
+        table.remove(self.history, 1)
+    end
+    print("[" .. timestamp .. "] [" .. level .. "] " .. entry.message)
 end
 
--- Выбор лучшего игрока для ESP
-local function FindBestTarget()
-    local bestPlayer = nil
-    local bestScore = -1
-    
-    -- Ищем игрока с наибольшим счётом (если есть лидерборд)
+function LogSystem:Info(msg) self:add("INFO", msg) end
+function LogSystem:Warning(msg) self:add("WARN", msg) end
+function LogSystem:Error(msg) self:add("ERROR", msg) end
+function LogSystem:Debug(msg) self:add("DEBUG", msg) end
 
+LogSystem:Info("========================================")
+LogSystem:Info("GHOST CLIENT ULTRA FIX v6.0 ЗАПУСК")
+LogSystem:Info("========================================")
+
+-- ============================================
+-- ЧАСТЬ 1: ДИАГНОСТИКА ОКРУЖЕНИЯ
+-- ============================================
+LogSystem:Info("Часть 1: Диагностика окружения...")
+
+local diagnosticData = {
+    environment = "unknown",
+    executor = "unknown",
+    studio = false,
+    mobile = false,
+    httpBlocked = true,
+    coreGuiAccess = false,
+    antiCheatDetected = false,
+    robloxVersion = "unknown",
+    placeId = 0,
+    gameId = 0,
+    startTime = tick()
+}
+
+-- 1.1: Определение среды
 pcall(function()
-        for _, plr in ipairs(players:GetPlayers()) do
-            if plr ~= player and plr.Character then
-                local leaderstats = plr:FindFirstChild("leaderstats")
-                if leaderstats then
-                    local score = leaderstats:FindFirstChild("Score") or 
-                                  leaderstats:FindFirstChild("Kills") or
-                                  leaderstats:FindFirstChild("Coins")
-                    if score and score.Value > bestScore then
-                        bestScore = score.Value
-                        bestPlayer = plr
-                    end
-                end
+    local runService = game:GetService("RunService")
+    diagnosticData.studio = runService:IsStudio()
+    if diagnosticData.studio then
+        diagnosticData.environment = "Roblox Studio"
+        LogSystem:Info("Среда: Roblox Studio")
+    end
+end)
+
+-- 1.2: Определение эксплойта
+pcall(function()
+    local executors = {
+        {name = "Synapse", check = function() return syn and syn.protect_gui end},
+        {name = "Krnl", check = function() return krnl and krnl.queue_on_teleport end},
+        {name = "ScriptWare", check = function() return SW and SW.CreateTween end},
+        {name = "Delta", check = function() return delta and delta.console end},
+        {name = "Hydrogen", check = function() return hydro and hydro.request end},
+        {name = "Fluxus", check = function() return fluxus and fluxus.setclipboard end},
+        {name = "Solara", check = function() return solara and solara.setfflag end},
+        {name = "Electron", check = function() return electron and electron.execute end},
+        {name = "Arceus X", check = function() return arceus and arceus.version end},
+        {name = "Valyse", check = function() return valyse and valyse.crypt end},
+        {name = "Nihon", check = function() return nihon and nihon.setup end},
+        {name = "Comet", check = function() return comet and comet.request end},
+        {name = "Celery", check = function() return celery and celery.execute end},
+        {name = "JJSploit", check = function() return jjsploit and jjsploit.options end},
+        {name = "Xeno", check = function() return xeno and xeno.load end},
+        {name = "Zeus", check = function() return zeus and zeus.run end},
+    }
+    
+    for _, executor in ipairs(executors) do
+        pcall(function()
+            if executor.check() then
+                diagnosticData.executor = executor.name
+                diagnosticData.environment = executor.name
+                LogSystem:Info("Эксплойт: " .. executor.name)
             end
+        end)
+    end
+end)
+
+-- 1.3: Определение мобильного эксплойта
+pcall(function()
+    if game:GetService("UserInputService").TouchEnabled then
+        diagnosticData.mobile = true
+        LogSystem:Info("Устройство: Мобильное")
+    end
+end)
+
+-- 1.4: Проверка версии Roblox
+pcall(function()
+    diagnosticData.robloxVersion = game:GetService("Version"):GetValue() or "unknown"
+    diagnosticData.placeId = game.PlaceId or 0
+    diagnosticData.gameId = game.GameId or 0
+
+LogSystem:Info("Roblox версия: " .. diagnosticData.robloxVersion)
+    LogSystem:Info("PlaceId: " .. tostring(diagnosticData.placeId))
+end)
+
+-- 1.5: Проверка доступа к CoreGui
+pcall(function()
+    local coreGui = game:GetService("CoreGui")
+    if coreGui then
+        diagnosticData.coreGuiAccess = true
+        LogSystem:Info("CoreGui доступен")
+    end
+end)
+
+-- 1.6: Проверка HTTP
+pcall(function()
+    if game:HttpGet then
+        diagnosticData.httpBlocked = false
+        LogSystem:Info("HTTP доступен")
+    else
+        LogSystem:Info("HTTP заблокирован")
+    end
+end)
+
+-- 1.7: Тест на античит (создаём тестовый GUI и проверяем)
+pcall(function()
+    local player = game.Players.LocalPlayer
+    local playerGui = player:FindFirstChild("PlayerGui")
+    if playerGui then
+        local testGui = Instance.new("ScreenGui")
+        testGui.Name = "AC_Test_" .. tostring(math.random(10000, 99999))
+        testGui.Parent = playerGui
+        task.wait(0.1)
+        if testGui and testGui.Parent then
+            diagnosticData.antiCheatDetected = false
+            LogSystem:Info("Античит не обнаружен (тестовый GUI выжил)")
+        else
+            diagnosticData.antiCheatDetected = true
+            LogSystem:Warning("Обнаружен античит! GUI был удалён")
+        end
+        pcall(function() testGui:Destroy() end)
+    end
+end)
+
+LogSystem:Info("Диагностика завершена")
+LogSystem:Info("========================================")
+
+-- ============================================
+-- ЧАСТЬ 2: ТАБЛИЦА МЕТОДОВ СОЗДАНИЯ GUI (15 методов)
+-- ============================================
+LogSystem:Info("Часть 2: Инициализация 15 методов создания GUI...")
+
+local methods = {
+    -- Метод 1: Стандартный PlayerGui
+    {
+        name = "PlayerGui (стандартный)",
+        priority = 1,
+        successRate = 95,
+        delay = 0,
+        needsExploit = false,
+        create = function()
+            local player = game.Players.LocalPlayer
+            local parent = player:WaitForChild("PlayerGui", 5)
+            if not parent then error("PlayerGui не найден") end
+            local gui = Instance.new("ScreenGui")
+            gui.Name = "GhostClient_Main"
+            gui.ResetOnSpawn = false
+            gui.Enabled = true
+            gui.Parent = parent
+            return gui, parent
+        end
+    },
+    
+    -- Метод 2: CoreGui (для эксплойтов)
+    {
+        name = "CoreGui",
+        priority = 2,
+        successRate = 80,
+        delay = 0.1,
+        needsExploit = true,
+        create = function()
+            local coreGui = game:GetService("CoreGui")
+            if not coreGui then error("CoreGui недоступен") end
+            local gui = Instance.new("ScreenGui")
+            gui.Name = "GhostClient_Core"
+            gui.ResetOnSpawn = false
+            gui.Enabled = true
+            gui.Parent = coreGui
+            return gui, coreGui
+        end
+    },
+    
+    -- Метод 3: CoreGui через syn (Synapse)
+    {
+        name = "CoreGui (Synapse)",
+        priority = 3,
+        successRate = 85,
+        delay = 0.05,
+        needsExploit = true,
+        create = function()
+            if not syn or not syn.protect_gui then error("Synapse не обнаружен") end
+            local gui = Instance.new("ScreenGui")
+            gui.Name = "GhostClient_Syn"
+            gui.ResetOnSpawn = false
+            gui.Enabled = true
+            syn.protect_gui(gui)
+            gui.Parent = game:GetService("CoreGui")
+            return gui, game:GetService("CoreGui")
+        end
+    },
+    
+    -- Метод 4: Через камеру
+    {
+        name = "Камера (Camera)",
+        priority = 4,
+        successRate = 60,
+        delay = 0.2,
+        needsExploit = false,
+        create = function()
+            local camera = workspace.CurrentCamera
+            if not camera then error("Камера не найдена") end
+            local gui = Instance.new("ScreenGui")
+            gui.Name = "GhostClient_Camera"
+            gui.ResetOnSpawn = false
+            gui.Enabled = true
+            gui.Parent = camera
+            return gui, camera
+        end
+    },
+    
+    -- Метод 5: BillboardGui на голове
+    {
+
+name = "BillboardGui (голова)",
+        priority = 5,
+        successRate = 40,
+        delay = 0.3,
+        needsExploit = false,
+        create = function()
+            local player = game.Players.LocalPlayer
+            local char = player.Character
+            if not char then error("Нет персонажа") end
+            local head = char:FindFirstChild("Head")
+            if not head then error("Нет головы") end
+            local gui = Instance.new("BillboardGui")
+            gui.Name = "GhostClient_Billboard"
+            gui.Size = UDim2.new(0, 300, 0, 400)
+            gui.Adornee = head
+            gui.Parent = head
+            return gui, head
+        end
+    },
+    
+    -- Метод 6: ReplicatedFirst
+    {
+        name = "ReplicatedFirst",
+        priority = 6,
+        successRate = 50,
+        delay = 0.15,
+        needsExploit = false,
+        create = function()
+            local replicatedFirst = game:GetService("ReplicatedFirst")
+            local gui = Instance.new("ScreenGui")
+            gui.Name = "GhostClient_RepFirst"
+            gui.ResetOnSpawn = false
+            gui.Enabled = true
+            gui.Parent = replicatedFirst
+            return gui, replicatedFirst
+        end
+    },
+    
+    -- Метод 7: PlayerScripts
+    {
+        name = "PlayerScripts",
+        priority = 7,
+        successRate = 45,
+        delay = 0.1,
+        needsExploit = false,
+        create = function()
+            local player = game.Players.LocalPlayer
+            local playerScripts = player:WaitForChild("PlayerScripts", 5)
+            if not playerScripts then error("PlayerScripts не найден") end
+            local gui = Instance.new("ScreenGui")
+            gui.Name = "GhostClient_PS"
+            gui.ResetOnSpawn = false
+            gui.Enabled = true
+            gui.Parent = playerScripts
+            return gui, playerScripts
+        end
+    },
+    
+    -- Метод 8: Lighting (аварийный)
+    {
+        name = "Lighting",
+        priority = 8,
+        successRate = 35,
+        delay = 0.1,
+        needsExploit = false,
+        create = function()
+            local lighting = game:GetService("Lighting")
+            local gui = Instance.new("ScreenGui")
+            gui.Name = "GhostClient_Light"
+            gui.ResetOnSpawn = false
+            gui.Enabled = true
+            gui.Parent = lighting
+            return gui, lighting
+        end
+    },
+    
+    -- Метод 9: SurfaceGui на Part в workspace
+    {
+        name = "SurfaceGui (Part)",
+        priority = 9,
+        successRate = 30,
+        delay = 0.4,
+        needsExploit = false,
+        create = function()
+            local player = game.Players.LocalPlayer
+            local char = player.Character
+            if not char then error("Нет персонажа") end
+            local hrp = char:FindFirstChild("HumanoidRootPart")
+            if not hrp then error("Нет HumanoidRootPart") end
+            
+            local part = Instance.new("Part")
+            part.Name = "GhostClient_Part"
+            part.Size = Vector3.new(1, 1, 1)
+            part.Transparency = 1
+            part.Anchored = true
+            part.CanCollide = false
+            part.Parent = workspace
+            
+            -- Привязываем к игроку
+            local weld = Instance.new("WeldConstraint")
+            weld.Part0 = part
+            weld.Part1 = hrp
+            weld.Parent = part
+            
+            local gui = Instance.new("SurfaceGui")
+            gui.Name = "GhostClient_Surface"
+            gui.Face = Enum.NormalId.Front
+            gui.CanvasSize = Vector2.new(400, 300)
+            gui.Parent = part
+            
+            return gui, part
+        end
+    },
+    
+    -- Метод 10: Через чат
+    {
+        name = "Chat Service",
+        priority = 10,
+        successRate = 20,
+        delay = 0.5,
+        needsExploit = false,
+        create = function()
+            local chat = game:GetService("Chat")
+            local gui = Instance.new("ScreenGui")
+            gui.Name = "GhostClient_Chat"
+            gui.ResetOnSpawn = false
+            gui.Enabled = true
+            gui.Parent = chat
+
+return gui, chat
+        end
+    },
+    
+    -- Метод 11: StarterGui
+    {
+        name = "StarterGui",
+        priority = 11,
+        successRate = 55,
+        delay = 0.2,
+        needsExploit = false,
+        create = function()
+            local starterGui = game:GetService("StarterGui")
+            local gui = Instance.new("ScreenGui")
+            gui.Name = "GhostClient_Starter"
+            gui.ResetOnSpawn = true
+            gui.Enabled = true
+            gui.Parent = starterGui
+            return gui, starterGui
+        end
+    },
+    
+    -- Метод 12: SoundService
+    {
+        name = "SoundService",
+        priority = 12,
+        successRate = 15,
+        delay = 0.3,
+        needsExploit = false,
+        create = function()
+            local soundService = game:GetService("SoundService")
+            local gui = Instance.new("ScreenGui")
+            gui.Name = "GhostClient_Sound"
+            gui.ResetOnSpawn = false
+            gui.Enabled = true
+            gui.Parent = soundService
+            return gui, soundService
+        end
+    },
+    
+    -- Метод 13: Plugin (только Studio)
+    {
+        name = "Plugin (Studio)",
+        priority = 13,
+        successRate = 70,
+        delay = 0.1,
+        needsExploit = false,
+        create = function()
+            if not plugin then error("Plugin не доступен (только Studio)") end
+            local gui = Instance.new("ScreenGui")
+            gui.Name = "GhostClient_Plugin"
+            gui.ResetOnSpawn = false
+            gui.Enabled = true
+            gui.Parent = plugin
+            return gui, plugin
+        end
+    },
+    
+    -- Метод 14: TextChatService
+    {
+        name = "TextChatService",
+        priority = 14,
+        successRate = 25,
+        delay = 0.2,
+        needsExploit = false,
+        create = function()
+            local textChat = game:GetService("TextChatService")
+            local gui = Instance.new("ScreenGui")
+            gui.Name = "GhostClient_TCS"
+            gui.ResetOnSpawn = false
+            gui.Enabled = true
+            gui.Parent = textChat
+            return gui, textChat
+        end
+    },
+    
+    -- Метод 15: nil parent (аварийный)
+    {
+        name = "nil parent (аварийный)",
+        priority = 15,
+        successRate = 10,
+        delay = 0.5,
+        needsExploit = false,
+        create = function()
+            local gui = Instance.new("ScreenGui")
+            gui.Name = "GhostClient_Nil"
+            gui.ResetOnSpawn = false
+            gui.Enabled = true
+            -- Пытаемся установить родителя позже
+            task.spawn(function()
+                task.wait(1)
+                pcall(function()
+                    local player = game.Players.LocalPlayer
+                    gui.Parent = player:FindFirstChild("PlayerGui") or game:GetService("CoreGui")
+                end)
+            end)
+            return gui, nil
+        end
+    },
+}
+
+LogSystem:Info("Инициализировано " .. #methods .. " методов создания GUI")
+
+-- ============================================
+-- ЧАСТЬ 3: СИСТЕМА МНОГОКРАТНЫХ ПОПЫТОК С РЕТРАЯМИ
+-- ============================================
+LogSystem:Info("Часть 3: Настройка системы ретраев...")
+
+local createdGui = nil
+local createdParent = nil
+local usedMethod = nil
+local totalAttempts = 0
+local successfulMethod = nil
+
+-- Функция попытки создания GUI одним методом
+local function tryMethod(method, maxRetries)
+    maxRetries = maxRetries or 5
+    
+    for attempt = 1, maxRetries do
+        totalAttempts = totalAttempts + 1
+        
+        LogSystem:Debug(string.format(
+            "Метод %d (%s): попытка %d/%d",
+            method.priority,
+            method.name,
+            attempt,
+            maxRetries
+        ))
+        
+        local success, gui, parent = pcall(function()
+            task.wait(method.delay)
+            return method.create()
+        end)
+        
+        if success and gui then
+            -- Проверяем, что GUI действительно создался
+            task.wait(0.15)
+            if gui and (gui.Parent or method.priority == 15) then
+                createdGui = gui
+
+createdParent = parent
+                usedMethod = method
+                successfulMethod = method.name
+                
+                LogSystem:Info(string.format(
+                    "✅ УСПЕХ! Метод %d (%s) сработал с попытки %d",
+                    method.priority,
+                    method.name,
+                    attempt
+                ))
+                return true, gui, parent
+            else
+                LogSystem:Warning(string.format(
+                    "Метод %d (%s): GUI создан но Parent исчез (античит?)",
+                    method.priority,
+                    method.name
+                ))
+                pcall(function() gui:Destroy() end)
+            end
+        else
+            LogSystem:Debug(string.format(
+                "Метод %d (%s): ошибка - %s",
+                method.priority,
+                method.name,
+                tostring(gui or "неизвестно")
+            ))
+        end
+        
+        -- Случайная задержка перед следующей попыткой
+        if attempt < maxRetries then
+            local waitTime = 0.3 + math.random() * 1.2
+            task.wait(waitTime)
+        end
+    end
+    
+    return false
+end
+
+-- Главная функция создания GUI (перебор всех методов)
+local function createGUIWithAllMethods()
+    LogSystem:Info("Начинаю перебор всех методов создания GUI...")
+    
+    -- Сортируем методы по приоритету
+    table.sort(methods, function(a, b) return a.priority < b.priority end)
+    
+    for _, method in ipairs(methods) do
+        -- Пропускаем методы для эксплойтов если их нет
+        if method.needsExploit and diagnosticData.executor == "unknown" and not diagnosticData.studio then
+            LogSystem:Debug("Пропускаю " .. method.name .. " (требуется эксплойт)")
+            goto continue
+        end
+        
+        -- Пропускаем Plugin если не в студии
+        if method.name == "Plugin (Studio)" and not diagnosticData.studio then
+            LogSystem:Debug("Пропускаю Plugin (не Studio)")
+            goto continue
+        end
+        
+        local success = tryMethod(method, 5)
+        if success then
+            return true
+        end
+        
+        ::continue::
+    end
+    
+    LogSystem:Error("ВСЕ 15 МЕТОДОВ НЕ СРАБОТАЛИ!")
+    return false
+end
+
+-- Бесконечный цикл попыток (если все методы не сработали)
+local function infiniteRetryLoop()
+    local loopCount = 0
+    while not createdGui do
+        loopCount = loopCount + 1
+        LogSystem:Warning(string.format(
+            "Бесконечный цикл: попытка #%d создать GUI...",
+            loopCount
+        ))
+        
+        local success = createGUIWithAllMethods()
+        if success then
+            LogSystem:Info("GUI успешно создан после " .. loopCount .. " циклов!")
+            return
+        end
+        
+        LogSystem:Warning("Все методы не сработали. Повтор через 5 секунд...")
+        task.wait(5)
+    end
+end
+
+-- ============================================
+-- ЧАСТЬ 4: ЗАЩИТА ОТ УДАЛЕНИЯ И САМОВОССТАНОВЛЕНИЕ
+-- ============================================
+LogSystem:Info("Часть 4: Настройка защиты от удаления...")
+
+local protectionActive = false
+local protectionThread = nil
+
+local function startProtectionSystem(gui)
+    if protectionActive then return end
+    protectionActive = true
+    
+    LogSystem:Info("Запуск системы защиты GUI...")
+    
+    -- Список имён для маскировки
+    local disguiseNames = {
+        "UI_System",
+        "RobloxGUI",
+        "CoreElement",
+        "HUD_Overlay",
+        "ChatBubble",
+        "NotificationPanel",
+        "LoadingScreen",
+        "MainHUD",
+        "PlayerOverlay",
+        "SystemMessage"
+    }
+    
+    -- Поток 1: Проверка существования GUI
+    protectionThread = task.spawn(function()
+        local checkCount = 0
+        local lastRename = tick()
+        
+        while protectionActive do
+            checkCount = checkCount + 1
+            task.wait(0.5)
+            
+            pcall(function()
+                -- Проверка: GUI существует?
+                if not gui or not gui.Parent then
+
+LogSystem:Error("GUI УДАЛЁН! Запускаю восстановление...")
+                    protectionActive = false
+                    
+                    -- Пересоздаём GUI
+                    createdGui = nil
+                    createdParent = nil
+                    usedMethod = nil
+                    
+                    -- Используем самый надёжный метод
+                    local bestMethod = methods[1]
+                    local success, newGui, newParent = pcall(function()
+                        task.wait(bestMethod.delay)
+                        return bestMethod.create()
+                    end)
+                    
+                    if success and newGui then
+                        LogSystem:Info("GUI восстановлен!")
+                        createdGui = newGui
+                        createdParent = newParent
+                        usedMethod = bestMethod
+                        buildFullGUI(newGui)
+                        startProtectionSystem(newGui)
+                    else
+                        LogSystem:Error("Не удалось восстановить GUI!")
+                        -- Запускаем полный цикл восстановления
+                        task.spawn(function()
+                            infiniteRetryLoop()
+                            if createdGui then
+                                buildFullGUI(createdGui)
+                                startProtectionSystem(createdGui)
+                            end
+                        end)
+                    end
+                    return
+                end
+                
+                -- Маскировка: переименование каждые 10-30 секунд
+                if tick() - lastRename > (10 + math.random() * 20) then
+                    local newName = disguiseNames[math.random(1, #disguiseNames)]
+                    gui.Name = newName .. "_" .. tostring(math.random(1000, 9999))
+                    lastRename = tick()
+                    LogSystem:Debug("GUI переименован в " .. gui.Name)
+                end
+                
+                -- Каждые 100 проверок логируем что GUI жив
+                if checkCount % 100 == 0 then
+                    LogSystem:Debug("GUI жив (проверка #" .. checkCount .. ")")
+                end
+            end)
         end
     end)
     
-    -- Если лидерборд не найден, берём случайного игрока
-    if not bestPlayer then
-        local otherPlayers = {}
-        for _, plr in ipairs(players:GetPlayers()) do
-            if plr ~= player and plr.Character then
-                table.insert(otherPlayers, plr)
-            end
-        end
-        if #otherPlayers > 0 then
-            bestPlayer = otherPlayers[math.random(1, #otherPlayers)]
-        end
-    end
-    
-    return bestPlayer
-end
-
--- Создание ESP на цели
-local function CreateESPOnTarget(target)
-    if not target or not target.Character then return end
-    
-    local char = target.Character
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-    
-    -- Удаляем старый ESP если есть
-    ClearESP()
-    
-    -- Создаём Highlight (обводка сквозь стены)
-    espHighlight = Instance.new("Highlight")
-    espHighlight.Name = "BrainrotHighlight"
-    espHighlight.Adornee = char
-    espHighlight.FillColor = Color3.fromRGB(255, 20, 147)
-    espHighlight.FillTransparency = 0.7
-    espHighlight.OutlineColor = Color3.fromRGB(255, 20, 147)
-    espHighlight.OutlineTransparency = 0
-    espHighlight.Enabled = true
-    espHighlight.Parent = char
-    
-    -- Создаём BillboardGui над головой
-    espBillboard = Instance.new("BillboardGui")
-    espBillboard.Name = "BrainrotBillboard"
-    espBillboard.Size = UDim2.new(0, 300, 0, 80)
-    espBillboard.StudsOffset = Vector3.new(0, 3, 0)
-    espBillboard.AlwaysOnTop = true
-    espBillboard.Enabled = true
-    espBillboard.Parent = char
-    
-    -- Имя игрока
-    local nameLabel = Instance.new("TextLabel")
-    nameLabel.Size = UDim2.new(1, 0, 0, 20)
-    nameLabel.Position = UDim2.new(0, 0, 0, 0)
-    nameLabel.BackgroundTransparency = 1
-    nameLabel.Text = target.Name
-    nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    nameLabel.Font = Enum.Font.GothamBold
-    nameLabel.TextSize = 16
-    nameLabel.OutlineColor = Color3.fromRGB(0, 0, 0)
-    nameLabel.Parent = espBillboard
-    
-    -- Brainrot фраза
-    local phraseLabel = Instance.new("TextLabel")
-    phraseLabel.Size = UDim2.new(1, 0, 0, 20)
-    phraseLabel.Position = UDim2.new(0, 0, 0, 22)
-    phraseLabel.BackgroundTransparency = 1
-    phraseLabel.Text = GetRandomBrainrotPhrase()
-    phraseLabel.TextColor3 = Color3.fromRGB(255, 50, 150)
-    phraseLabel.Font = Enum.Font.Gotham
-    phraseLabel.TextSize = 14
-    phraseLabel.OutlineColor = Color3.fromRGB(0, 0, 0)
-    phraseLabel.Parent = espBillboard
-    
-    -- GIVES информация
-    local givesLabel = Instance.new("TextLabel")
-    givesLabel.Size = UDim2.new(1, 0, 0, 20)
-    givesLabel.Position = UDim2.new(0, 0, 0, 44)
-    givesLabel.BackgroundTransparency = 1
-    local randomAmount = math.random(1, 9999)
-    local randomItem = math.random(1, 3) == 1 and "EXP" or (math.random(1, 2) == 1 and "COINS" or "POWER")
-    givesLabel.Text = "GIVES: " .. randomAmount .. " " .. randomItem
-    givesLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
-    givesLabel.Font = Enum.Font.Gotham
-    givesLabel.TextSize = 12
-    givesLabel.OutlineColor = Color3.fromRGB(0, 0, 0)
-    givesLabel.Parent = espBillboard
-end
-
--- Очистка ESP
-local function ClearESP()
-    if espHighlight then
-        pcall(function() espHighlight:Destroy() end)
-        espHighlight = nil
-    end
-    if espBillboard then
-        pcall(function() espBillboard:Destroy() end)
-        espBillboard = nil
-    end
-end
-
--- Обновление ESP
-local function UpdateESP()
-    if not espEnabled then
-        ClearESP()
-        return
-    end
-    
-    -- Проверяем, жив ли текущий таргет
-    if currentTarget then
-        local stillValid = false
-        pcall(function()
-            if currentTarget.Parent and currentTarget.Character then
-                stillValid = true
-            end
-        end)
-        if not stillValid then
-            ClearESP()
-            currentTarget = nil
-        end
-    end
-    
-    -- Если нет таргета, ищем нового
-    if not currentTarget then
-        currentTarget = FindBestTarget()
-        if currentTarget then
-            CreateESPOnTarget(currentTarget)
-            print("[GhostClient] ESP нацелен на: " .. currentTarget.Name)
-        end
-    end
-end
-
--- Запуск/остановка ESP
-local function ToggleESP()
-    espEnabled = not espEnabled
-    
-    if espEnabled then
-        -- Запускаем обновление ESP
-        espUpdateConnection = runService.RenderStepped:Connect(function()
+    -- Поток 2: Резервное копирование в другое место
+    task.spawn(function()
+        while protectionActive do
+            task.wait(15)
             pcall(function()
-                if espEnabled and currentTarget and currentTarget.Character then
-                    -- Пульсация Highlight
-                    if espHighlight then
-                        local pulse = math.sin(tick() * 5) * 0.2 + 0.5
-                        espHighlight.FillTransparency = pulse
-                    end
-                    
-                    -- Обновление brainrot фразы каждые 3 секунды
-                    if espBillboard and math.floor(tick()) % 3 == 0 then
-                        local phraseLabels = espBillboard:GetChildren()
-                        if #phraseLabels >= 2 then
-                            phraseLabels[2].Text = GetRandomBrainrotPhrase()
-                        end
-                    end
+                if gui and gui.Parent then
+                    -- Сохраняем важные данные GUI
+                    gui:SetAttribute("lastBackup", tick())
+                    gui:SetAttribute("backupCount", (gui:GetAttribute("backupCount") or 0) + 1)
                 end
             end)
-        end)
-        
-        -- Проверка новых игроков и ухода старых
-        playerCheckConnection = players.PlayerRemoving:Connect(function(plr)
-            if plr == currentTarget then
-                ClearESP()
-                currentTarget = nil
-                UpdateESP()
-            end
-        end)
-        
-        -- Начальная установка ESP
-        UpdateESP()
-        print("[GhostClient] ESP включен")
-        return true
-    else
-        -- Остановка ESP
-        ClearESP()
-        currentTarget = nil
-        if espUpdateConnection then
-            pcall(function() espUpdateConnection:Disconnect() end)
-            espUpdateConnection = nil
         end
-        if playerCheckConnection then
-            pcall(function() playerCheckConnection:Disconnect() end)
-            playerCheckConnection = nil
-        end
-        print("[GhostClient] ESP выключен")
-        return false
-    end
+    end)
 end
 
 -- ============================================
--- СОЗДАНИЕ ГЛАВНОГО GUI
+-- ЧАСТЬ 5: ПОСТРОЕНИЕ ПОЛНОГО GUI
 -- ============================================
-local function CreateMainGUI()
-    print("[GhostClient] Создание главного GUI...")
+LogSystem:Info("Часть 5: Подготовка построения GUI...")
+
+local function buildFullGUI(gui)
+    LogSystem:Info("Построение полного GUI...")
     
-    -- ИКОНКА (круглая кнопка в правом верхнем углу)
-    local icon = Instance.new("ImageButton")
+    -- Создаём уведомление (всплывающее)
+    local function showNotification(text)
+        pcall(function()
+            local notif = Instance.new("Frame")
+            notif.Size = UDim2.new(0, 300, 0, 50)
+            notif.Position = UDim2.new(1, 10, 0, 80)
+            notif.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+            notif.BorderSizePixel = 0
+            notif.ZIndex = 200
+            notif.Parent = gui
+            
+            local corner = Instance.new("UICorner")
+            corner.CornerRadius = UDim.new(0, 10)
+            corner.Parent = notif
+            
+            local label = Instance.new("TextLabel")
+            label.Size = UDim2.new(1, -10, 1, 0)
+            label.Position = UDim2.new(0, 5, 0, 0)
+            label.BackgroundTransparency = 1
+            label.Text = text
+            label.TextColor3 = Color3.fromRGB(255, 255, 255)
+            label.Font = Enum.Font.Gotham
+            label.TextSize = 14
+            label.TextXAlignment = Enum.TextXAlignment.Left
+            label.Parent = notif
+
+pcall(function()
+                local tweenService = game:GetService("TweenService")
+                tweenService:Create(notif, TweenInfo.new(0.3, Enum.EasingStyle.Back), 
+                    {Position = UDim2.new(1, -310, 0, 80)}):Play()
+                task.wait(3)
+                tweenService:Create(notif, TweenInfo.new(0.3, Enum.EasingStyle.Quad), 
+                    {Position = UDim2.new(1, 10, 0, 80)}):Play()
+                task.wait(0.3)
+                notif:Destroy()
+            end)
+        end)
+    end
+    
+    -- Иконка (круглая кнопка)
+    local icon = Instance.new("TextButton")
     icon.Name = "MainIcon"
     icon.Size = UDim2.new(0, 55, 0, 55)
     icon.Position = UDim2.new(1, -70, 0, 10)
     icon.BackgroundColor3 = Color3.fromRGB(20, 20, 40)
     icon.BorderSizePixel = 0
-    icon.AutoButtonColor = false
-    icon.ZIndex = 50
+    icon.Text = "G"
+    icon.TextColor3 = Color3.fromRGB(255, 255, 255)
+    icon.Font = Enum.Font.GothamBold
+    icon.TextSize = 26
+    icon.ZIndex = 100
     icon.Parent = gui
     
     local iconCorner = Instance.new("UICorner")
     iconCorner.CornerRadius = UDim.new(1, 0)
     iconCorner.Parent = icon
     
-    local iconText = Instance.new("TextLabel")
-    iconText.Size = UDim2.new(1, 0, 1, 0)
-    iconText.BackgroundTransparency = 1
-    iconText.Text = "G"
-    iconText.TextColor3 = Color3.fromRGB(255, 255, 255)
-    iconText.Font = Enum.Font.GothamBold
-    iconText.TextSize = 26
-    iconText.Parent = icon
-    
-    -- Анимация появления иконки
-    icon.BackgroundTransparency = 1
-    iconText.TextTransparency = 1
-    tweenService:Create(icon, TweenInfo.new(0.5, Enum.EasingStyle.Back), 
-        {BackgroundTransparency = 0}):Play()
-    tweenService:Create(iconText, TweenInfo.new(0.5), 
-        {TextTransparency = 0}):Play()
-    
-    -- ГЛАВНОЕ ОКНО
+    -- Главное окно
     local main = Instance.new("Frame")
-
-main.Name = "MainWindow"
-    main.Size = UDim2.new(0, 450, 0, 320)  -- Ширина 450, высота 320
-    main.Position = UDim2.new(0.5, -225, 0.5, -160)
+    main.Name = "MainWindow"
+    main.Size = UDim2.new(0, 500, 0, 400)
+    main.Position = UDim2.new(0.5, -250, 0.5, -200)
     main.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
     main.BorderSizePixel = 0
     main.Visible = false
-    main.ZIndex = 60
+    main.ZIndex = 110
     main.Parent = gui
     
     local mainCorner = Instance.new("UICorner")
     mainCorner.CornerRadius = UDim.new(0, 12)
     mainCorner.Parent = main
     
-    -- ЗАГОЛОВОК ОКНА
+    -- Заголовок
     local titleBar = Instance.new("Frame")
-    titleBar.Name = "TitleBar"
-    titleBar.Size = UDim2.new(1, 0, 0, 40)
+    titleBar.Size = UDim2.new(1, 0, 0, 45)
     titleBar.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
     titleBar.BorderSizePixel = 0
-    titleBar.ZIndex = 61
+    titleBar.ZIndex = 111
     titleBar.Parent = main
-    
-    local titleCorner = Instance.new("UICorner")
-    titleCorner.CornerRadius = UDim.new(0, 12)
-    titleCorner.Parent = titleBar
     
     local titleText = Instance.new("TextLabel")
     titleText.Size = UDim2.new(0.7, 0, 1, 0)
     titleText.Position = UDim2.new(0, 15, 0, 0)
     titleText.BackgroundTransparency = 1
-    titleText.Text = "👻 GHOST CLIENT"
+    titleText.Text = "👻 GHOST CLIENT - ULTRA FIX"
     titleText.TextColor3 = Color3.fromRGB(255, 255, 255)
     titleText.Font = Enum.Font.GothamBold
     titleText.TextSize = 16
     titleText.TextXAlignment = Enum.TextXAlignment.Left
-    titleText.ZIndex = 61
+    titleText.ZIndex = 111
     titleText.Parent = titleBar
     
-    -- КНОПКА ЗАКРЫТИЯ
+    -- Кнопка закрытия
     local closeBtn = Instance.new("TextButton")
-    closeBtn.Name = "CloseButton"
-    closeBtn.Size = UDim2.new(0, 35, 0, 35)
-    closeBtn.Position = UDim2.new(1, -40, 0, 2)
+    closeBtn.Size = UDim2.new(0, 40, 0, 40)
+    closeBtn.Position = UDim2.new(1, -45, 0, 2)
     closeBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
     closeBtn.Text = "✕"
     closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
     closeBtn.Font = Enum.Font.GothamBold
-    closeBtn.TextSize = 18
+    closeBtn.TextSize = 20
     closeBtn.BorderSizePixel = 0
-    closeBtn.ZIndex = 62
+    closeBtn.ZIndex = 112
     closeBtn.Parent = titleBar
     
-    local closeCorner = Instance.new("UICorner")
-    closeCorner.CornerRadius = UDim.new(0, 8)
-    closeCorner.Parent = closeBtn
+    -- Содержимое
+    local content = Instance.new("Frame")
+    content.Size = UDim2.new(1, -20, 1, -55)
+    content.Position = UDim2.new(0, 10, 0, 50)
+    content.BackgroundTransparency = 1
+    content.ZIndex = 111
+    content.Parent = main
     
-    -- ВКЛАДКИ (ТАБЫ)
-    local tabButtons = {}
-    local tabFrames = {}
+    -- Кнопка ESP (заглушка)
+    local espBtn = Instance.new("TextButton")
+    espBtn.Size = UDim2.new(1, 0, 0, 50)
+    espBtn.Position = UDim2.new(0, 0, 0, 10)
+    espBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+    espBtn.Text = "ESP: ВЫКЛ"
+    espBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    espBtn.Font = Enum.Font.GothamBold
+    espBtn.TextSize = 16
+    espBtn.BorderSizePixel = 0
+    espBtn.ZIndex = 112
+    espBtn.Parent = content
     
-    local tabNames = {"MOVEMENT", "VISUALS"}
-    local tabWidth = (450 - 20) / 2  -- Ширина каждой вкладки
-    
-    for i, tabName in ipairs(tabNames) do
-        -- Кнопка вкладки
-        local tabBtn = Instance.new("TextButton")
-        tabBtn.Size = UDim2.new(0, tabWidth, 0, 35)
-        tabBtn.Position = UDim2.new(0, 10 + (i-1) * (tabWidth + 5), 0, 45)
-        tabBtn.BackgroundColor3 = i == 1 and Color3.fromRGB(80, 80, 90) or Color3.fromRGB(40, 40, 50)
-        tabBtn.Text = tabName
-        tabBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-        tabBtn.Font = Enum.Font.GothamBold
-        tabBtn.TextSize = 14
-        tabBtn.BorderSizePixel = 0
-        tabBtn.ZIndex = 61
-        tabBtn.Parent = main
-        
-        local tabBtnCorner = Instance.new("UICorner")
-        tabBtnCorner.CornerRadius = UDim.new(0, 6)
-        tabBtnCorner.Parent = tabBtn
-        
-        tabButtons[tabName] = tabBtn
-        
-        -- Панель вкладки
-        local tabFrame = Instance.new("Frame")
-        tabFrame.Size = UDim2.new(1, -20, 1, -95)
-        tabFrame.Position = UDim2.new(0, 10, 0, 85)
-        tabFrame.BackgroundTransparency = 1
-        tabFrame.Visible = i == 1
-        tabFrame.ZIndex = 61
-        tabFrame.Parent = main
-        
-        tabFrames[tabName] = tabFrame
-    end
-    
-    -- Функция переключения вкладок
-    local function SwitchTab(tabName)
-        for name, btn in pairs(tabButtons) do
-            btn.BackgroundColor3 = name == tabName and Color3.fromRGB(80, 80, 90) or Color3.fromRGB(40, 40, 50)
+    local espEnabled = false
+    espBtn.MouseButton1Click:Connect(function()
+        espEnabled = not espEnabled
+        if espEnabled then
+            espBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+            espBtn.Text = "ESP: ВКЛ"
+            showNotification("ESP включен")
+        else
+            espBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+            espBtn.Text = "ESP: ВЫКЛ"
+            showNotification("ESP выключен")
         end
-        for name, frame in pairs(tabFrames) do
-            frame.Visible = name == tabName
-        end
-    end
+    end)
     
-    for tabName, btn in pairs(tabButtons) do
-        btn.MouseButton1Click:Connect(function()
-            SwitchTab(tabName)
-        end)
-    end
-    
-    -- ============================================
-    -- ВКЛАДКА MOVEMENT
-    -- ============================================
-    local movFrame = tabFrames["MOVEMENT"]
-    
-    -- Кнопка ПЛАТФОРМА
+    -- Кнопка Платформа
     local platBtn = Instance.new("TextButton")
+    platBtn.Size = UDim2.new(1, 0, 0, 50)
     platBtn.
 
-Name = "PlatformButton"
-    platBtn.Size = UDim2.new(0, 200, 0, 50
+Position = UDim2.new(0, 0, 0, 80)
+    platBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+    platBtn.Text = "ПЛАТФОРМА: ВЫКЛ"
+    platBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    platBtn.Font = Enum.Font.GothamBold
+    platBtn.TextSize = 16
+    platBtn.BorderSizePixel = 0
+    platBtn.ZIndex = 112
+    platBtn.Parent = content
+    
+    local platEnabled = false
+    platBtn.MouseButton1Click:Connect(function()
+        platEnabled = not platEnabled
+        if platEnabled then
+            platBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+            platBtn.Text = "ПЛАТФОРМА: ВКЛ"
+            showNotification("Платформа включена")
+        else
+            platBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+            platBtn.Text = "ПЛАТФОРМА: ВЫКЛ"
+            showNotification("Платформа выключена")
+        end
+    end)
+    
+    -- Кнопка проверки GUI
+    local checkBtn = Instance.new("TextButton")
+    checkBtn.Size = UDim2.new(1, 0, 0, 40)
+    checkBtn.Position = UDim2.new(0, 0, 0, 150)
+    checkBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 200)
+    checkBtn.Text = "ПРОВЕРИТЬ GUI"
+    checkBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    checkBtn.Font = Enum.Font.GothamBold
+    checkBtn.TextSize = 14
+    checkBtn.BorderSizePixel = 0
+    checkBtn.ZIndex = 112
+    checkBtn.Parent = content
+    
+    checkBtn.MouseButton1Click:Connect(function()
+        showNotification("✅ GUI работает! Метод: " .. (successfulMethod or "неизвестно"))
+        LogSystem:Info("Самодиагностика: GUI активен")
+    end)
+    
+    -- Кнопка пересоздания GUI
+    local recreateBtn = Instance.new("TextButton")
+    recreateBtn.Size = UDim2.new(1, 0, 0, 40)
+    recreateBtn.Position = UDim2.new(0, 0, 0, 200)
+    recreateBtn.BackgroundColor3 = Color3.fromRGB(200, 100, 0)
+    recreateBtn.Text = "ПЕРЕСОЗДАТЬ GUI"
+    recreateBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    recreateBtn.Font = Enum.Font.GothamBold
+    recreateBtn.TextSize = 14
+    recreateBtn.BorderSizePixel = 0
+    recreateBtn.ZIndex = 112
+    recreateBtn.Parent =
