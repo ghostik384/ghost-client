@@ -46,8 +46,8 @@ Logger:Info("Platform: " .. (isMobile and "Mobile" or "PC"))
 
 -- Масштаб шрифта и элементов
 local FONT_SCALE   = isMobile and 1.35 or 1.0
-local WINDOW_W     = isMobile and 0.92  or 0.38   -- доля экрана
-local WINDOW_H     = isMobile and 0.52  or 0.44
+local WINDOW_W     = isMobile and 0.92  or 0.32   -- доля экрана (уменьшено с 0.38)
+local WINDOW_H     = isMobile and 0.52  or 0.52   -- доля экрана (увеличено с 0.44)
 
 local function fs(size) return math.floor(size * FONT_SCALE) end
 
@@ -110,9 +110,7 @@ end
 -- Центральный блок — адаптивный
 local centerBg = Instance.new("Frame")
 centerBg.Size                   = UDim2.new(isMobile and 0.88 or 0.48, 0, isMobile and 0.38 or 0.32, 0)
-centerBg.
-
-Position               = UDim2.new(0.5, 0, 0.5, 0)
+centerBg.Position               = UDim2.new(0.5, 0, 0.5, 0)
 centerBg.AnchorPoint            = Vector2.new(0.5, 0.5)
 centerBg.BackgroundColor3       = Color3.fromRGB(5,5,10)
 centerBg.BackgroundTransparency = 0.25
@@ -225,8 +223,7 @@ task.delay(LOAD_TIME, function()
         pcall(function()
             if child:IsA("TextLabel") or child:IsA("Frame") then
                 TweenService:Create(child, TweenInfo.new(0.6, Enum.EasingStyle.Quad), {
-
-BackgroundTransparency = 1,
+                    BackgroundTransparency = 1,
                     TextTransparency = 1
                 }):Play()
             end
@@ -476,9 +473,7 @@ end
 local gui = Instance.new("ScreenGui")
 gui.Name           = "GhostClient_Main"
 gui.ResetOnSpawn   = false
-gui.
-
-IgnoreGuiInset = true
+gui.IgnoreGuiInset = true
 gui.Enabled        = false
 gui.Parent         = playerGui
 
@@ -585,9 +580,7 @@ local function switchTab(name)
     for n,frame in pairs(tabFrames)  do frame.Visible = n==name end
 end
 for name,btn in pairs(tabButtons) do
-    btn.
-
-MouseButton1Click:Connect(function() switchTab(name) end)
+    btn.MouseButton1Click:Connect(function() switchTab(name) end)
 end
 
 -- MOVEMENT TAB
