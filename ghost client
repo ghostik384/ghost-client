@@ -1,13 +1,12 @@
 --[[
-    GHOST CLIENT v7.1 - PLATFORM FIX
-    Платформа теперь ПОДНИМАЕТ игрока через WeldConstraint
---]]
+    GHOST CLIENT v7.1 - COMBINED
+    Платформа 5x5 | Подъём 10 студс/сек | ESP | Защита
+]]
 
-local Logger = {
-    history = {},
-    maxHistory = 150
-}
-
+-- ============================================
+-- LOGGER
+-- ============================================
+local Logger = {history = {}, maxHistory = 150}
 function Logger:add(level, message)
     local timestamp = os.date("%H:%M:%S")
     local entry = {time = timestamp, level = level, message = tostring(message)}
@@ -15,480 +14,192 @@ function Logger:add(level, message)
     if #self.history > self.maxHistory then table.remove(self.history, 1) end
     print("[" .. timestamp .. "] [" .. level .. "] " .. entry.message)
 end
-
 function Logger:Info(msg) self:add("INFO", msg) end
 function Logger:Warn(msg) self:add("WARN", msg) end
 function Logger:Error(msg) self:add("ERROR", msg) end
 function Logger:Debug(msg) self:add("DEBUG", msg) end
 
-Logger:Info("Ghost Client v7.1 - Platform Fix Starting")
+Logger:Info("Ghost Client v7.1 Combined Starting...")
 
-local function SafeGetService(name)
-    local s, r = pcall(function() return game:GetService(name) end)
-    if s and r then return r end
-    return nil
-end
+-- ============================================
+-- СЕРВИСЫ
+-- ============================================
+local RunService  = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local Players     = game:GetService("Players")
+local Workspace   = game:GetService("Workspace")
 
-local RunService = SafeGetService("RunService")
-local TweenService = SafeGetService("TweenService")
-local Players = SafeGetService("Players")
-local Workspace = game:FindFirstChild("Workspace") or SafeGetService("Workspace")
-
-local player = Players and Players.LocalPlayer
+local player = Players.LocalPlayer
 if not player then Logger:Error("No LocalPlayer") return end
-
 Logger:Info("Player: " .. player.Name)
 
 -- ============================================
--- GUI СОЗДАНИЕ
+-- ПЛАТФОРМА (5x5, 10 студс/сек, прыжок)
 -- ============================================
-local gui = nil
-local createdGui = false
+local PLATFORM_SIZE   = Vector3.new(5, 0.5, 5)
+local LIFT_SPEED      = 10   -- студс/сек
+local PLATFORM_OFFSET = -3   -- смещение под ноги
 
-local function createGUI()
-    if createdGui then return end
-    
-    local playerGui = player:FindFirstChild("PlayerGui")
-    if not playerGui then
-        playerGui = player:WaitForChild("PlayerGui", 5)
-    end
-    if not playerGui then
-        Logger:Error("No PlayerGui")
-        return
-    end
-    
-    gui = Instance.new("ScreenGui")
-    gui.Name = "GhostClient_Main"
-    gui.ResetOnSpawn = false
-    gui.Enabled = true
-    gui.Parent = playerGui
-    
-    createdGui = true
-    Logger:Info("GUI created")
-end
-
--- ============================================
--- ПЛАТФОРМА С WELDCONSTRAINT (РЕАЛЬНЫЙ ПОДЪЁМ)
--- ============================================
-local platformActive = false
-local platformObject = nil
-local platformWeld = nil
-local movementConnection = nil
-local protectionConnections = {}
+local platformActive    = false
 local wasPlatformActive = false
+local platformObject    = nil
+local platformHeartbeat = nil
 
--- Получить позицию под ногами игрока
-local function getFootPosition()
-    local char = player.Character
-    if not char then return nil end
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return nil end
-    
-    -- Вычисляем высоту персонажа
-    local lowestY = hrp.Position.Y
-    for _, part in ipairs(char:GetChildren()) do
-        if part:IsA("BasePart") and part ~= hrp then
-            local partBottom = part.Position.Y - (part.Size.Y / 2)
-            if partBottom < lowestY then
-                lowestY = partBottom
-            end
-        end
-    end
-    
-    -- Позиция на 0.5 студии ниже самой низкой точки
-    local footY = lowestY - 0.5
-    
-    Logger:Debug(string.format("Foot position: X=%.2f Y=%.2f Z=%.2f", 
-        hrp.Position.X, footY, hrp.Position.Z))
-    
-    return Vector3.new(hrp.Position.X, footY, hrp.Position.Z)
-end
-
--- Метод 1: Стандартный с WeldConstraint (ОСНОВНОЙ)
-local function createPlatformWithWeld()
-    Logger:Info("Creating platform with WeldConstraint...")
-    
-    local char = player.Character
-    if not char then
-        Logger:Error("No character")
-        return false
-    end
-    
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    if not hrp then
-        Logger:Error("No HumanoidRootPart")
-        return false
-    end
-    
-    local footPos = getFootPosition()
-    if not footPos then
-        Logger:Error("Cannot calculate foot position")
-        return false
-    end
-    
-    -- Создаём платформу
-    local plat = Instance.new("Part")
-    plat.Name = "UserPlatform_" .. tostring(math.random(1000, 9999))
-    plat.Size = Vector3.new(10, 1, 10)
-    plat.Position = footPos
-    plat.Anchored = true  -- Платформа закреплена, но игрок приварен к ней
-    plat.CanCollide = true
-    plat.
-
-Transparency = 0.5
-    plat.BrickColor = BrickColor.new("Medium stone grey")
-    plat.Material = Enum.Material.SmoothPlastic
-    plat.Parent = Workspace
-    
-    -- Подсветка
-    local highlight = Instance.new("SelectionBox")
-    highlight.Adornee = plat
-    highlight.Color3 = Color3.fromRGB(100, 100, 100)
-    highlight.Transparency = 0.5
-    highlight.LineThickness = 0.05
-    highlight.Parent = plat
-    
-    -- ВАЖНО: WeldConstraint между платформой и HumanoidRootPart
-    -- Это заставит игрока подниматься вместе с платформой
-    local weld = Instance.new("WeldConstraint")
-    weld.Name = "PlatformWeld"
-    weld.Part0 = plat
-    weld.Part1 = hrp
-    weld.Parent = plat
-    
-    platformObject = plat
-    platformWeld = weld
-    
-    Logger:Info("Platform created, WeldConstraint active between platform and HumanoidRootPart")
-    Logger:Info("Player will now move with the platform")
-    
-    return true
-end
-
--- Метод 2: Anchored false + Weld (запасной)
-local function createPlatformUnanchored()
-    Logger:Info("Creating unanchored platform with Weld...")
-    
+local function createPlatform()
     local char = player.Character
     if not char then return false end
     local hrp = char:FindFirstChild("HumanoidRootPart")
     if not hrp then return false end
-    
-    local footPos = getFootPosition()
-    if not footPos then return false end
-    
+
+    local startPos = Vector3.new(
+        hrp.Position.X,
+        hrp.Position.Y + PLATFORM_OFFSET,
+        hrp.Position.Z
+    )
+
     local plat = Instance.new("Part")
-    plat.Name = "UserPlatform_" .. tostring(math.random(1000, 9999))
-    plat.Size = Vector3.new(10, 1, 10)
-    plat.Position = footPos
-    plat.Anchored = false  -- Не закреплена
-    plat.CanCollide = true
-    plat.Transparency = 0.5
-    plat.BrickColor = BrickColor.new("Medium stone grey")
-    plat.Material = Enum.Material.SmoothPlastic
-    plat.Parent = Workspace
-    
+    plat.Name         = "AutoPlatform"
+    plat.Size         = PLATFORM_SIZE
+    plat.Position     = startPos
+    plat.Anchored     = true
+    plat.CanCollide   = true
+    plat.BrickColor   = BrickColor.new("Medium stone grey")
+    plat.Material     = Enum.Material.SmoothPlastic
+    plat.Transparency = 0.3
+    plat.Parent       = Workspace
+
     local highlight = Instance.new("SelectionBox")
-    highlight.Adornee = plat
-    highlight.Color3 = Color3.fromRGB(100, 100, 100)
-    highlight.Transparency = 0.5
+    highlight.Adornee       = plat
+    highlight.Color3        = Color3.fromRGB(120, 120, 120)
+    highlight.Transparency  = 0.5
     highlight.LineThickness = 0.05
-    highlight.Parent = plat
-    
-    local weld = Instance.new("WeldConstraint")
-    weld.Name = "PlatformWeld"
-    weld.Part0 = plat
-    weld.Part1 = hrp
-    weld.Parent = plat
-    
+    highlight.Parent        = plat
+
     platformObject = plat
-    platformWeld = weld
-    
+    Logger:Info("Platform created at " .. tostring(startPos))
     return true
 end
 
--- Метод 3: CFrame принудительный (экстренный)
-local function createPlatformCFrame()
-    Logger:Info("Creating CFrame platform...")
-    
-    local char = player.Character
-    if not char then return false end
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return false end
-    
-    local plat = Instance.new("Part")
-    plat.Name = "UserPlatform_" .. tostring(math.random(1000, 9999))
-    plat.Size = Vector3.new(10, 1, 10)
-    plat.CFrame = hrp.CFrame - Vector3.new(0, 3, 0)
-    plat.Anchored = true
-    plat.CanCollide = true
-    plat.Transparency = 0.5
-    plat.BrickColor = BrickColor.new("Medium stone grey")
-    plat.Material = Enum.Material.SmoothPlastic
-    plat.Parent = Workspace
-    
-    local weld = Instance.new("WeldConstraint")
-    weld.Name = "PlatformWeld"
-    weld.Part0 = plat
-    weld.Part1 = hrp
-    weld.Parent = plat
-    
-    platformObject = plat
-    platformWeld = weld
-    
-    return true
-end
-
--- Список методов
-local platformMethods = {
-    {name = "WeldConstraint Anchored", func = createPlatformWithWeld},
-    {name = "WeldConstraint Unanchored", func = createPlatformUnanchored},
-    {name = "CFrame Weld", func = createPlatformCFrame},
-}
-
--- Создание платформы с перебором методов
-local function createPlatformWithFallback()
-    for i, method in ipairs(platformMethods) do
-        Logger:Info("Trying platform method " .. i .. ": " .. method.name)
-        for attempt = 1, 3 do
-            local success = pcall(function()
-                return method.func()
-            end)
-            if success and platformObject then
-                Logger:Info("PLATFORM CREATED with method: " .. method.name)
-                Logger:Info("Player WILL be lifted by the platform!")
-                return true, method.name
-            end
-            Logger:Warn("Attempt " .. attempt .. " failed, retrying...")
-            task.wait(0.3)
-
-end
-    end
-    Logger:Error("ALL PLATFORM METHODS FAILED")
-    return false, nil
-end
-
--- ============================================
--- АНИМАЦИЯ ДВИЖЕНИЯ ПЛАТФОРМЫ
--- ============================================
-local function startPlatformMovement()
-    if not platformObject or not platformObject.Parent then
-        Logger:Error("No platform to animate")
-        return
-    end
-    
-    Logger:Info("Starting platform movement animation...")
-    
-    local baseY = platformObject.Position.Y
-    local amplitude = 20  -- Подъём на 20 студий
-    local cycleTime = 3   -- Полный цикл за 3 секунды
-    local startTime = tick()
-    
-    movementConnection = RunService.RenderStepped:Connect(function()
+local function startPlatformLoop()
+    platformHeartbeat = RunService.Heartbeat:Connect(function(dt)
         if not platformActive then return end
-        if not platformObject or not platformObject.Parent then return end
-        
-        pcall(function()
-            local elapsed = tick() - startTime
-            -- Синусоидальное движение
-            local offset = math.sin(elapsed * (2 * math.pi / cycleTime)) * amplitude
-            local newY = baseY + offset
-            
-            -- Обновляем позицию платформы
-            if platformObject.Anchored then
-                local pos = platformObject.Position
-                platformObject.Position = Vector3.new(pos.X, newY, pos.Z)
-            else
-                -- Для не Anchored используем VectorForce или прямую установку
-                platformObject.Position = Vector3.new(
-                    platformObject.Position.X,
-                    newY,
-                    platformObject.Position.Z
-                )
-            end
-            
-            -- Отладка каждые 60 кадров
-            if math.floor(elapsed * 10) % 60 == 0 then
-                Logger:Debug(string.format(
-                    "Platform Y: %.2f (base: %.2f, offset: %.2f)",
-                    newY, baseY, offset
-                ))
-            end
-        end)
+        local char = player.Character
+        if not char then return end
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        if not hrp or not platformObject or not platformObject.Parent then return end
+
+        local rootPos = hrp.Position
+        local floorY  = rootPos.Y + PLATFORM_OFFSET
+        local platY   = platformObject.Position.Y
+
+        local newY
+
+        -- Прыжок или платформа выше ног — мгновенно под ноги
+        if platY > floorY or (rootPos.Y - platY) > 8 then
+            newY = floorY
+        else
+            -- Поднимаем со скоростью 10 студс/сек
+            newY = platY + LIFT_SPEED * dt
+            if newY > floorY then newY = floorY end
+        end
+
+        platformObject.CFrame = CFrame.new(rootPos.X, newY, rootPos.Z)
     end)
-    
-    Logger:Info("Platform movement started: amplitude=" .. amplitude .. " cycle=" .. cycleTime .. "s")
+end
+
+local function cleanupPlatform()
+    platformActive = false
+    if platformHeartbeat then
+        platformHeartbeat:Disconnect()
+        platformHeartbeat = nil
+    end
+    if platformObject then
+        platformObject:Destroy()
+        platformObject = nil
+    end
+    Logger:Info("Platform removed")
 end
 
 -- ============================================
 -- ЗАЩИТА (АНТИ-РЕСЕТ)
+
 -- ============================================
+local protectionConnections = {}
+local disableProtectionFunc = nil
+
 local function enableProtection()
     Logger:Info("Enabling protection...")
-    
     local char = player.Character
     if not char then return end
     local hum = char:FindFirstChild("Humanoid")
     if not hum then return end
-    
-    -- Сохраняем оригинальные значения
-    local origFallDamage = hum.FallDamage
-    local origBreakJoints = hum.BreakJointsOnDeath
-    local origWalkSpeed = hum.WalkSpeed
-    
-    -- Применяем защиту
-    hum.FallDamage = false
-    hum.BreakJointsOnDeath = false
-    hum.WalkSpeed = math.min(hum.WalkSpeed, 32)
-    
-    Logger:Info("Protection applied: FallDamage=false, BreakJoints=false, WalkSpeed<=" .. hum.WalkSpeed)
-    
-    -- Цикл проверки здоровья
+
+    pcall(function() hum.FallDamage = false end)
+    pcall(function() hum.BreakJointsOnDeath = false end)
+
     local healthConn = RunService.Heartbeat:Connect(function()
         pcall(function()
             if hum and hum.Parent then
                 if hum.Health <= 0 then
                     hum.Health = hum.MaxHealth
-                    Logger:Warn("Health reset prevented (anti-reset)")
+                    Logger:Warn("Anti-reset triggered")
                 end
-                if hum.WalkSpeed > 32 then
-                    hum.WalkSpeed = 32
-                end
-                if hum.FallDamage == true then
-                    hum.FallDamage = false
-                end
-                if hum.BreakJointsOnDeath == true then
-                    hum.BreakJointsOnDeath = false
-                end
+                if hum.FallDamage == true then hum.FallDamage = false end
+                if hum.BreakJointsOnDeath == true then hum.BreakJointsOnDeath = false end
             end
         end)
     end)
-    
+
     table.insert(protectionConnections, healthConn)
-    
-    -- Возвращаем функцию отключения
+    Logger:Info("Protection enabled")
+
     return function()
         pcall(function() healthConn:Disconnect() end)
-        pcall(function()
-            if hum and hum.Parent then
-                hum.FallDamage = origFallDamage
-                hum.BreakJointsOnDeath = origBreakJoints
-                hum.WalkSpeed = origWalkSpeed
-            end
-        end)
         Logger:Info("Protection disabled")
     end
 end
 
-local disableProtectionFunc = nil
-
 -- ============================================
-
--- ОЧИСТКА ПЛАТФОРМЫ
--- ============================================
-local function cleanupPlatform()
-    Logger:Info("Cleaning up platform...")
-    
-    platformActive = false
-    
-    -- Останавливаем анимацию
-    if movementConnection then
-        pcall(function() movementConnection:Disconnect() end)
-        movementConnection = nil
-        Logger:Debug("Movement animation stopped")
-    end
-    
-    -- Отключаем защиту
-    if disableProtectionFunc then
-        disableProtectionFunc()
-        disableProtectionFunc = nil
-    end
-    
-    -- Очищаем соединения защиты
-    for _, conn in ipairs(protectionConnections) do
-        pcall(function() conn:Disconnect() end)
-    end
-    protectionConnections = {}
-    
-    -- Удаляем WeldConstraint
-    if platformWeld then
-        pcall(function() platformWeld:Destroy() end)
-        platformWeld = nil
-        Logger:Debug("WeldConstraint destroyed")
-    end
-    
-    -- Удаляем платформу
-    if platformObject then
-        pcall(function() platformObject:Destroy() end)
-        platformObject = nil
-        Logger:Debug("Platform destroyed")
-    end
-    
-    Logger:Info("Platform cleanup complete")
-end
-
--- ============================================
--- ГЛАВНАЯ ФУНКЦИЯ ПЕРЕКЛЮЧЕНИЯ ПЛАТФОРМЫ
+-- ПЕРЕКЛЮЧЕНИЕ ПЛАТФОРМЫ
 -- ============================================
 local function togglePlatform()
     if platformActive then
-        -- ВЫКЛЮЧЕНИЕ
         cleanupPlatform()
-        Logger:Info("=== PLATFORM DISABLED ===")
+        if disableProtectionFunc then
+            disableProtectionFunc()
+            disableProtectionFunc = nil
+        end
+        for _, c in ipairs(protectionConnections) do pcall(function() c:Disconnect() end) end
+        protectionConnections = {}
+        Logger:Info("=== PLATFORM OFF ===")
         return false
     else
-        -- ВКЛЮЧЕНИЕ
-        Logger:Info("=== ENABLING PLATFORM ===")
-        
-        local success, methodName = createPlatformWithFallback()
-        if not success then
-            Logger:Error("Failed to create platform!")
-            return false
+        Logger:Info("=== PLATFORM ON ===")
+        if createPlatform() then
+            platformActive    = true
+            wasPlatformActive = true
+            startPlatformLoop()
+            disableProtectionFunc = enableProtection()
+            return true
         end
-        
-        platformActive = true
-        wasPlatformActive = true
-        
-        -- Запускаем анимацию движения
-        startPlatformMovement()
-        
-        -- Включаем защиту
-        disableProtectionFunc = enableProtection()
-        
-        Logger:Info("=== PLATFORM ENABLED ===")
-        Logger:Info("Method: " .. methodName)
-        Logger:Info("Player is now WELDED to platform and will be lifted!")
-        
-        return true
+        return false
     end
 end
 
--- ============================================
--- ОБРАБОТКА РЕСПАВНА
--- ============================================
-player.CharacterAdded:Connect(function(char)
-    Logger:Info("Character respawned")
-    
-    if wasPlatformActive and platformActive then
-        Logger:Info("Platform was active, recreating...")
-        
-        -- Очищаем старую платформу
+-- Пересоздание после респавна
+player.CharacterAdded:Connect(function()
+    Logger:Info("Respawn detected")
+    if wasPlatformActive then
         cleanupPlatform()
-        
-        -- Ждём загрузки нового персонажа
         task.wait(0.5)
-        
-        -- Пересоздаём платформу
-        local success, methodName = createPlatformWithFallback()
-        if success then
+        if createPlatform() then
             platformActive = true
-            startPlatformMovement()
+            startPlatformLoop()
             disableProtectionFunc = enableProtection()
-            Logger:Info("Platform recreated after respawn!")
+            Logger:Info("Platform recreated after respawn")
         else
-            platformActive = false
+            platformActive    = false
             wasPlatformActive = false
-            Logger:Error("Failed to recreate platform after respawn")
         end
     end
 end)
@@ -496,103 +207,67 @@ end)
 -- ============================================
 -- BRAINROT ESP
 -- ============================================
-local espActive = false
-local espHighlight = nil
-local espBillboard = nil
+local espActive     = false
+local espHighlight  = nil
+local espBillboard  = nil
 local espUpdateConn = nil
 
 local brainrotPhrases = {
-    "SIGMA MALE 💪🗿", "SKIBIDI RIZZ 🚽✨", "FANUM TAX 💰😱",
-    "OHIO FINAL BOSS 🏚️👹", "GYATT DAYUM 🍑🔥", "MEWING STREAK 🧏‍♂️📈",
-    "CHUNGUS MAX 🐰💯", "FLOPTOPICA KING 🏳️‍🌈👑", "NO CAP FR FR 🧢💀",
-    "BRAINROT DETECTED 🧠⚠️", "SUSSY BAKA 😳📮", "RIZZLY BEAR 🐻💋"
+    "SIGMA MALE 💪🗿","SKIBIDI RIZZ 🚽✨","FANUM TAX 💰😱",
+    "OHIO FINAL BOSS 🏚️👹","GYATT DAYUM 🍑🔥","MEWING STREAK 🧏‍♂️📈",
+    "CHUNGUS MAX 🐰💯","FLOPTOPICA KING 🏳️‍🌈👑","NO CAP FR FR 🧢💀",
+    "BRAINROT DETECTED 🧠⚠️","SUSSY BAKA 😳📮","RIZZLY BEAR 🐻💋"
 }
 
 local function getRandomPhrase()
     return brainrotPhrases[math.random(1, #brainrotPhrases)]
 end
 
-local function findBestTarget()
-    for _, plr in ipairs(Players:GetPlayers()) do
-        if plr ~= player and plr.Character then
-            return plr
-        end
-    end
-    return nil
-end
-
 local function clearESP()
-    if espUpdateConn then
-        pcall(function() espUpdateConn:Disconnect() end)
-
-espUpdateConn = nil
-    end
-    if espHighlight then
-        pcall(function() espHighlight:Destroy() end)
-        espHighlight = nil
-    end
-    if espBillboard then
-        pcall(function() espBillboard:Destroy() end)
-        espBillboard = nil
-    end
+    if espUpdateConn then espUpdateConn:Disconnect(); espUpdateConn = nil end
+    if espHighlight  then espHighlight:Destroy();     espHighlight  = nil end
+    if espBillboard  then espBillboard:Destroy();     espBillboard  = nil end
 end
 
 local function createESP(target)
     if not target or not target.Character then return end
-    local char = target.Character
-    
     clearESP()
-    
+    local char = target.Character
+
     espHighlight = Instance.new("Highlight")
-    espHighlight.Adornee = char
-    espHighlight.FillColor = Color3.fromRGB(255, 20, 147)
+    espHighlight.Adornee          = char
+    espHighlight.FillColor        = Color3.fromRGB(255, 20, 147)
     espHighlight.FillTransparency = 0.7
-    espHighlight.OutlineColor = Color3.fromRGB(255, 20, 147)
-    espHighlight.Parent = char
-    
+    espHighlight.OutlineColor     = Color3.fromRGB(255, 20, 147)
+    espHighlight.Parent           = char
+
     espBillboard = Instance.new("BillboardGui")
-    espBillboard.Size = UDim2.new(0, 250, 0, 60)
+    espBillboard.Size        = UDim2.new(0, 250, 0, 60)
     espBillboard.StudsOffset = Vector3.new(0, 3, 0)
     espBillboard.AlwaysOnTop = true
-    espBillboard.Parent = char
-    
-    local nameLabel = Instance.new("TextLabel")
-    nameLabel.Size = UDim2.new(1, 0, 0, 20)
-    nameLabel.BackgroundTransparency = 1
-    nameLabel.Text = target.Name
-    nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    nameLabel.Font = Enum.Font.GothamBold
-    nameLabel.TextSize = 14
-    nameLabel.Parent = espBillboard
-    
-    local phraseLabel = Instance.new("TextLabel")
-    phraseLabel.Size = UDim2.new(1, 0, 0, 20)
-    phraseLabel.Position = UDim2.new(0, 0, 0, 22)
-    phraseLabel.BackgroundTransparency = 1
-    phraseLabel.Text = getRandomPhrase()
-    phraseLabel.TextColor3 = Color3.fromRGB(255, 50, 150)
-    phraseLabel.Font = Enum.Font.Gotham
-    phraseLabel.TextSize = 12
-    phraseLabel.Parent = espBillboard
-    
-    local givesLabel = Instance.new("TextLabel")
-    givesLabel.Size = UDim2.new(1, 0, 0, 20)
-    givesLabel.Position = UDim2.new(0, 0, 0, 42)
-    givesLabel.BackgroundTransparency = 1
-    givesLabel.Text = "GIVES: " .. math.random(1, 9999) .. " EXP"
-    givesLabel.TextColor3 = Color3.fromRGB(255, 200, 50)
-    givesLabel.Font = Enum.Font.Gotham
-    givesLabel.TextSize = 12
-    givesLabel.Parent = espBillboard
-    
-    -- Обновление фразы каждые 5 секунд
+    espBillboard.Parent      = char
+
+local function makeLabel(pos, text, color, size)
+        local l = Instance.new("TextLabel")
+        l.Size                   = UDim2.new(1, 0, 0, 20)
+        l.Position               = pos
+        l.BackgroundTransparency = 1
+        l.Text                   = text
+        l.TextColor3             = color
+        l.Font                   = Enum.Font.GothamBold
+        l.TextSize               = size
+        l.Parent                 = espBillboard
+        return l
+    end
+
+    makeLabel(UDim2.new(0,0,0,0),  target.Name,                         Color3.fromRGB(255,255,255), 14)
+    local phraseLabel =
+    makeLabel(UDim2.new(0,0,0,22), getRandomPhrase(),                   Color3.fromRGB(255,50,150),  12)
+    makeLabel(UDim2.new(0,0,0,42), "GIVES: "..math.random(1,9999).." EXP", Color3.fromRGB(255,200,50), 12)
+
     espUpdateConn = RunService.Heartbeat:Connect(function()
-        if tick() % 5 < 0.1 then
-            pcall(function()
-                if phraseLabel and phraseLabel.Parent then
-                    phraseLabel.Text = getRandomPhrase()
-                end
-            end)
+        if tick() % 5 < 0.05 then
+            pcall(function() phraseLabel.Text = getRandomPhrase() end)
         end
     end)
 end
@@ -600,16 +275,16 @@ end
 local function toggleESP()
     espActive = not espActive
     if espActive then
-        local target = findBestTarget()
-        if target then
-            createESP(target)
-            Logger:Info("ESP enabled on: " .. target.Name)
-            return true
-        else
-            espActive = false
-            Logger:Warn("No target for ESP")
-            return false
+        for _, plr in ipairs(Players:GetPlayers()) do
+            if plr ~= player and plr.Character then
+                createESP(plr)
+                Logger:Info("ESP on: " .. plr.Name)
+                return true
+            end
         end
+        espActive = false
+        Logger:Warn("No ESP target found")
+        return false
     else
         clearESP()
         Logger:Info("ESP disabled")
@@ -618,240 +293,199 @@ local function toggleESP()
 end
 
 -- ============================================
--- СОЗДАНИЕ GUI
+-- GUI
 -- ============================================
-createGUI()
+local playerGui = player:WaitForChild("PlayerGui", 5)
+if not playerGui then Logger:Error("No PlayerGui") return end
 
-if not gui then
-    Logger:Error("GUI not created, exiting")
-    return
-end
+local gui = Instance.new("ScreenGui")
+gui.Name         = "GhostClient_Main"
+gui.ResetOnSpawn = false
+gui.Parent       = playerGui
 
--- Иконка
+-- Иконка G
 local icon = Instance.new("TextButton")
-icon.Size = UDim2.new(0, 55, 0, 55)
-icon.Position = UDim2.new(1, -70, 0, 10)
-icon.BackgroundColor3 = Color3.fromRGB(20, 20, 40)
-icon.BorderSizePixel = 0
-icon.Text = "G"
-icon.TextColor3 = Color3.fromRGB(255, 255, 255)
-icon.Font = Enum.Font.GothamBold
-icon.TextSize = 26
-icon.ZIndex = 100
-icon.Parent = gui
-
-local iconCorner = Instance.new("UICorner")
-iconCorner.CornerRadius = UDim.new(1, 0)
-iconCorner.Parent = icon
+icon.Size             = UDim2.new(0,55,0,55)
+icon.Position         = UDim2.new(1,-70,0,10)
+icon.BackgroundColor3 = Color3.fromRGB(20,20,40)
+icon.BorderSizePixel  = 0
+icon.Text             = "G"
+icon.TextColor3       = Color3.fromRGB(255,255,255)
+icon.Font             = Enum.Font.GothamBold
+icon.TextSize         = 26
+icon.ZIndex           = 100
+icon.Parent           = gui
+Instance.new("UICorner",icon).CornerRadius = UDim.new(1,0)
 
 -- Главное окно
 local main = Instance.new("Frame")
-main.Size = UDim2.new(0, 450, 0, 320)
-main.Position = UDim2.new(0.5, -225, 0.5, -160)
-main.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
-main.BorderSizePixel = 0
-main.Visible = false
-main.ZIndex = 110
-main.Parent = gui
-
-local mainCorner = Instance.new("UICorner")
-mainCorner.CornerRadius = UDim.new(0, 12)
-mainCorner.Parent = main
+main.Size             = UDim2.new(0,450,0,340)
+main.Position         = UDim2.new(0.5,-225,0.5,-170)
+main.BackgroundColor3 = Color3.fromRGB(25,25,35)
+main.BorderSizePixel  = 0
+main.Visible          = false
+main.ZIndex           = 110
+main.Parent           = gui
+Instance.new("UICorner",main).CornerRadius = UDim.new(0,12)
 
 -- Заголовок
 local titleBar = Instance.new("Frame")
-titleBar.Size = UDim2.new(1, 0, 0, 40)
-titleBar.BackgroundColor3 = Color3.fromRGB(35, 35, 45)
-titleBar.
-
-BorderSizePixel = 0
-titleBar.ZIndex = 111
-titleBar.Parent = main
-
-local titleCorner = Instance.new("UICorner")
-titleCorner.CornerRadius = UDim.new(0, 12)
-titleCorner.Parent = titleBar
+titleBar.Size             = UDim2.new(1,0,0,40)
+titleBar.BackgroundColor3 = Color3.fromRGB(35,35,45)
+titleBar.BorderSizePixel  = 0
+titleBar.ZIndex           = 111
+titleBar.Parent           = main
+Instance.new("UICorner",titleBar).CornerRadius = UDim.new(0,12)
 
 local titleText = Instance.new("TextLabel")
-titleText.Size = UDim2.new(0.7, 0, 1, 0)
-titleText.Position = UDim2.new(0, 15, 0, 0)
+titleText.Size               = UDim2.new(0.7,0,1,0)
+titleText.Position           = UDim2.new(0,15,0,0)
 titleText.BackgroundTransparency = 1
-titleText.Text = "GHOST CLIENT v7.1"
-titleText.TextColor3 = Color3.fromRGB(255, 255, 255)
-titleText.Font = Enum.Font.GothamBold
-titleText.TextSize = 16
-titleText.TextXAlignment = Enum.TextXAlignment.Left
-titleText.ZIndex = 111
-titleText.Parent = titleBar
+titleText.Text               = "GHOST CLIENT v7.1"
+titleText.TextColor3         = Color3.fromRGB(255,255,255)
+titleText.Font               = Enum.Font.GothamBold
+titleText.TextSize           = 16
+titleText.TextXAlignment     = Enum.TextXAlignment.Left
+titleText.ZIndex             = 111
+titleText.Parent             = titleBar
 
--- Кнопка закрытия
 local closeBtn = Instance.new("TextButton")
-closeBtn.Size = UDim2.new(0, 35, 0, 35)
-closeBtn.Position = UDim2.new(1, -40, 0, 2)
-closeBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 70)
-closeBtn.Text = "X"
-closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-closeBtn.Font = Enum.Font.GothamBold
-closeBtn.TextSize = 18
-closeBtn.BorderSizePixel = 0
-closeBtn.ZIndex = 112
-closeBtn.Parent = titleBar
-
-local closeCorner = Instance.new("UICorner")
-closeCorner.CornerRadius = UDim.new(0, 8)
-closeCorner.Parent = closeBtn
+closeBtn.Size             = UDim2.new(0,35,0,35)
+closeBtn.Position         = UDim2.new(1,-40,0,2)
+closeBtn.BackgroundColor3 = Color3.fromRGB(60,60,70)
+closeBtn.Text             = "X"
+closeBtn.TextColor3       = Color3.fromRGB(255,255,255)
+closeBtn.Font             = Enum.Font.GothamBold
+closeBtn.TextSize         = 18
+closeBtn.BorderSizePixel  = 0
+closeBtn.ZIndex           = 112
+closeBtn.Parent           = titleBar
+Instance.new("UICorner",closeBtn).CornerRadius = UDim.new(0,8)
 
 -- Вкладки
-local tabButtons = {}
-local tabFrames = {}
-local tabNames = {"MOVEMENT", "VISUALS"}
+local tabButtons, tabFrames = {}, {}
+local tabNames = {"MOVEMENT","VISUALS"}
 
 for i, name in ipairs(tabNames) do
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(0, 210, 0, 35)
-    btn.Position = UDim2.new(0, 10 + (i-1) * 215, 0, 48)
-    btn.BackgroundColor3 = i == 1 and Color3.fromRGB(80, 80, 90) or Color3.fromRGB(40, 40, 50)
-    btn.Text = name
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 14
-    btn.BorderSizePixel = 0
-    btn.ZIndex = 111
-    btn.Parent = main
-    
-    local btnCorner = Instance.new("UICorner")
-    btnCorner.CornerRadius = UDim.new(0, 6)
-    btnCorner.Parent = btn
-    
+    btn.Size             = UDim2.new(0,210,0,35)
+    btn.Position         = UDim2.new(0, 10+(i-1)*215, 0, 48)
+    btn.BackgroundColor3 = i==1 and Color3.fromRGB(80,80,90) or Color3.fromRGB(40,40,50)
+    btn.Text             = name
+    btn.TextColor3       = Color3.fromRGB(255,255,255)
+    btn.Font             = Enum.Font.GothamBold
+    btn.TextSize         = 14
+    btn.BorderSizePixel  = 0
+    btn.ZIndex           = 111
+    btn.Parent           = main
+    Instance.new("UICorner",btn).CornerRadius = UDim.new(0,6)
     tabButtons[name] = btn
-    
+
     local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(1, -20, 1, -95)
-    frame.Position = UDim2.new(0, 10, 0, 88)
+    frame.Size               = UDim2.new(1,-20,1,-95)
+    frame.Position           = UDim2.new(0,10,0,88)
     frame.BackgroundTransparency = 1
-    frame.Visible = i == 1
-    frame.ZIndex = 111
-    frame.Parent = main
-    
+    frame.Visible            = i==1
+    frame.ZIndex             = 111
+    frame.Parent             = main
     tabFrames[name] = frame
 end
 
 local function switchTab(name)
-    for n, btn in pairs(tabButtons) do
-        btn.BackgroundColor3 = n == name and Color3.fromRGB(80, 80, 90) or Color3.fromRGB(40, 40, 50)
-    end
-    for n, frame in pairs(tabFrames) do
-        frame.Visible = n == name
-    end
+    for n,btn   in pairs(tabButtons) do btn.BackgroundColor3 = n==name and Color3.fromRGB(80,80,90) or Color3.fromRGB(40,40,50) end
+    for n,frame in pairs(tabFrames)  do frame.Visible = n==name end
 end
-
-for name, btn in pairs(tabButtons) do
+for name,btn in pairs(tabButtons) do
     btn.MouseButton1Click:Connect(function() switchTab(name) end)
 end
 
--- Вкладка MOVEMENT
+-- ============================================
+-- MOVEMENT TAB
+-- ============================================
 local movFrame = tabFrames["MOVEMENT"]
 
 local platBtn = Instance.new("TextButton")
-platBtn.Size = UDim2.new(0, 200, 0, 50)
-platBtn.Position = UDim2.new(0.5, -100, 0, 30)
-platBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-platBtn.Text = "PLATFORM: OFF"
-platBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-platBtn.Font = Enum.Font.GothamBold
-platBtn.TextSize = 16
-platBtn.BorderSizePixel = 0
-platBtn.ZIndex = 112
-platBtn.Parent = movFrame
-
-local platCorner = Instance.new("UICorner")
-platCorner.CornerRadius = UDim.new(0, 8)
-platCorner.Parent = platBtn
+platBtn.Size             = UDim2.new(0,220,0,50)
+platBtn.Position         = UDim2.new(0.5,-110,0,20)
+platBtn.BackgroundColor3 = Color3.fromRGB(200,50,50)
+platBtn.Text             = "PLATFORM: OFF"
+platBtn.TextColor3       = Color3.fromRGB(255,255,255)
+platBtn.Font             = Enum.Font.GothamBold
+platBtn.TextSize         = 16
+platBtn.BorderSizePixel  = 0
+platBtn.ZIndex           = 112
+platBtn.Parent           = movFrame
+Instance.new("UICorner",platBtn).CornerRadius = UDim.new(0,8)
 
 local platStatus = Instance.new("TextLabel")
-platStatus.Size = UDim2.new(0, 200, 0, 40)
-platStatus.Position = UDim2.new(0.5, -100, 0, 90)
+platStatus.Size                  = UDim2.new(0,220,0,55)
+platStatus.Position              = UDim2.new(0.5,-110,0,80)
 platStatus.BackgroundTransparency = 1
-platStatus.Text = "Status: OFF\nPlatform lifts player UP/DOWN"
-platStatus.TextColor3 = Color3.fromRGB(180, 180, 180)
-platStatus.Font = Enum.Font.Gotham
-platStatus.TextSize = 11
-platStatus.TextXAlignment = Enum.TextXAlignment.Center
-platStatus.Parent = movFrame
+platStatus.Text                  = "Платформа 5×5 под ногами\nПодъём: 10 студс/сек\nЗащита от урона: включится"
+platStatus.TextColor3            = Color3.fromRGB(180,180,180)
+platStatus.Font                  = Enum.Font.Gotham
+platStatus.TextSize              = 11
+platStatus.TextXAlignment        = Enum.TextXAlignment.Center
+platStatus.Parent                = movFrame
 
 platBtn.MouseButton1Click:Connect(function()
-    local result = togglePlatform()
-    if result then
-        platBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
-        platBtn.Text = "PLATFORM: ON"
-        platStatus.Text = "Status: ON\nPlayer LIFTED by platform!"
-        platStatus.TextColor3 = Color3.fromRGB(0, 255, 100)
-    else
-        platBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-        platBtn.Text = "PLATFORM: OFF"
-        platStatus.Text = "Status: OFF\nPlatform lifts player UP/DOWN"
-        platStatus.TextColor3 = Color3.
-
-fromRGB(180, 180, 180)
-    end
+    local on = togglePlatform()
+    platBtn.BackgroundColor3 = on and Color3.fromRGB(0,150,0) or Color3.fromRGB(200,50,50)
+    platBtn.Text             = on and "PLATFORM: ON" or "PLATFORM: OFF"
+    platStatus.Text          = on
+        and "✅ Активна! Поднимает 10 ст/сек\nПрыгни — встанет под ноги\n🛡️ Защита от урона: ON"
+        or  "Платформа 5×5 под ногами\nПодъём: 10 студс/сек\nЗащита от урона: включится"
+    platStatus.TextColor3    = on and Color3.fromRGB(0,255,100) or Color3.fromRGB(180,180,180)
 end)
 
--- Вкладка VISUALS
+-- ============================================
+-- VISUALS TAB
+-- ============================================
 local visFrame = tabFrames["VISUALS"]
 
 local espBtn = Instance.new("TextButton")
-espBtn.Size = UDim2.new(0, 200, 0, 50)
-espBtn.Position = UDim2.new(0.5, -100, 0, 30)
-espBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-espBtn.Text = "ESP: OFF"
-espBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-espBtn.Font = Enum.Font.GothamBold
-espBtn.TextSize = 16
-espBtn.BorderSizePixel = 0
-espBtn.ZIndex = 112
-espBtn.Parent = visFrame
-
-local espCorner = Instance.new("UICorner")
-espCorner.CornerRadius = UDim.new(0, 8)
-espCorner.Parent = espBtn
+espBtn.Size             = UDim2.new(0,200,0,50)
+espBtn.Position         = UDim2.new(0.5,-100,0,30)
+espBtn.BackgroundColor3 = Color3.fromRGB(200,50,50)
+espBtn.Text             = "ESP: OFF"
+espBtn.TextColor3       = Color3.fromRGB(255,255,255)
+espBtn.Font             = Enum.Font.GothamBold
+espBtn.TextSize         = 16
+espBtn.BorderSizePixel  = 0
+espBtn.ZIndex           = 112
+espBtn.Parent           = visFrame
+Instance.new("UICorner",espBtn).CornerRadius = UDim.new(0,8)
 
 local espStatus = Instance.new("TextLabel")
-espStatus.Size = UDim2.new(0, 200, 0, 20)
-espStatus.Position = UDim2.new(0.5, -100, 0, 90)
+espStatus.Size                  = UDim2.new(0,200,0,20)
+espStatus.Position              = UDim2.new(0.5,-100,0,90)
 espStatus.BackgroundTransparency = 1
-espStatus.Text = "Status: OFF"
-espStatus.TextColor3 = Color3.fromRGB(180, 180, 180)
-espStatus.Font = Enum.Font.Gotham
-espStatus.TextSize = 12
-espStatus.TextXAlignment = Enum.TextXAlignment.Center
-espStatus.Parent = visFrame
+espStatus.
+
+Text                  = "Status: OFF"
+espStatus.TextColor3            = Color3.fromRGB(180,180,180)
+espStatus.Font                  = Enum.Font.Gotham
+espStatus.TextSize              = 12
+espStatus.TextXAlignment        = Enum.TextXAlignment.Center
+espStatus.Parent                = visFrame
 
 espBtn.MouseButton1Click:Connect(function()
-    local result = toggleESP()
-    if result then
-        espBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
-        espBtn.Text = "ESP: ON"
-        espStatus.Text = "Status: ON"
-    else
-        espBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-        espBtn.Text = "ESP: OFF"
-        espStatus.Text = "Status: OFF"
-    end
+    local on = toggleESP()
+    espBtn.BackgroundColor3 = on and Color3.fromRGB(0,150,0) or Color3.fromRGB(200,50,50)
+    espBtn.Text             = on and "ESP: ON" or "ESP: OFF"
+    espStatus.Text          = on and "Status: ON" or "Status: OFF"
+    espStatus.TextColor3    = on and Color3.fromRGB(0,255,100) or Color3.fromRGB(180,180,180)
 end)
 
--- Подключение иконки и кнопки закрытия
-icon.MouseButton1Click:Connect(function()
-    main.Visible = not main.Visible
-end)
+-- Иконка и закрытие
+icon.MouseButton1Click:Connect(function() main.Visible = not main.Visible end)
+closeBtn.MouseButton1Click:Connect(function() main.Visible = false end)
 
-closeBtn.MouseButton1Click:Connect(function()
-    main.Visible = false
-end)
-
--- Финальный лог
+-- ============================================
 Logger:Info("========================================")
 Logger:Info("GHOST CLIENT v7.1 READY")
-Logger:Info("Platform WILL lift player via WeldConstraint")
-Logger:Info("ESP targets other players with brainrot")
-Logger:Info("Click 'G' icon to open menu")
+Logger:Info("Platform: 5x5 | 10 studs/sec | jump fix")
+Logger:Info("Protection: anti fall damage + anti reset")
+Logger:Info("ESP: brainrot labels on players")
+Logger:Info("Нажми G чтобы открыть меню")
 Logger:Info("========================================")
